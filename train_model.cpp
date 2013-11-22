@@ -53,7 +53,7 @@ void train_model::recognize(const image::color_image& I,image::grayscale_image& 
             return;
     }
     for(unsigned int iter = 0;iter < 4;++iter)
-        image::morphology::smoothing(result,255);
+        image::morphology::smoothing(result);
 }
 void train_model::cca(const image::grayscale_image& result,
                       unsigned int border,unsigned char feature_type,
@@ -72,7 +72,7 @@ void train_model::cca(const image::grayscale_image& result,
             std::vector<image::vector<2,float> > center_of_mass(regions.size());
             std::vector<image::vector<2,int> > max_pos(regions.size()),min_pos(regions.size());
             std::fill(min_pos.begin(),min_pos.end(),image::vector<2,float>(result.geometry()[0],result.geometry()[1]));
-            for (image::pixel_index<2> index;index.valid(result.geometry());index.next(result.geometry()))
+            for (image::pixel_index<2> index;index.is_valid(result.geometry());index.next(result.geometry()))
             {
                 size_t region_id = labels[index.index()]-1;
                 if (!result[index.index()] || regions[region_id].empty())
