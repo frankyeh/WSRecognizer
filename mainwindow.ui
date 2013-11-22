@@ -180,7 +180,7 @@
      <item>
       <widget class="QTabWidget" name="tabWidget_2">
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tab_4">
         <attribute name="title">
@@ -282,10 +282,87 @@
         <layout class="QVBoxLayout" name="verticalLayout_9">
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QToolButton" name="open_reco_result">
+             <property name="maximumSize">
+              <size>
+               <width>23</width>
+               <height>22</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="icons.qrc">
+               <normaloff>:/icons/icons/open.xpm</normaloff>:/icons/icons/open.xpm</iconset>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QPushButton" name="save_reco_result">
+             <property name="maximumSize">
+              <size>
+               <width>23</width>
+               <height>22</height>
+              </size>
+             </property>
              <property name="text">
-              <string>Save...</string>
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="icons.qrc">
+               <normaloff>:/icons/icons/save.xpm</normaloff>:/icons/icons/save.xpm</iconset>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>min:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QDoubleSpinBox" name="color_min"/>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>max:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QDoubleSpinBox" name="color_max">
+             <property name="maximum">
+              <double>100.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>10.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="zoom_2">
+             <property name="text">
+              <string>zoom</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSpinBox" name="zoom">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>10</number>
+             </property>
+             <property name="value">
+              <number>2</number>
              </property>
             </widget>
            </item>
@@ -305,7 +382,7 @@
           </layout>
          </item>
          <item>
-          <widget class="QGraphicsView" name="graphicsView_2"/>
+          <widget class="QGraphicsView" name="result_view"/>
          </item>
         </layout>
        </widget>
@@ -321,6 +398,8 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="icons.qrc"/>
+ </resources>
  <connections/>
 </ui>

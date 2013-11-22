@@ -22,16 +22,20 @@ private:
     QMapGraphicsScene map_scene;
     QTrainScene train_scene;
     QMainScene main_scene;
-    QGraphicsScene info_scene;
+    QGraphicsScene info_scene,result_scene;
     image::color_image main_image;
 private:
     std::auto_ptr<boost::thread> thread;
     std::auto_ptr<QTimer> timer;
     bool terminated;
+private:
+    image::basic_image<float,2> sdi_value;
+    image::color_image bar,colormap,sdi_image;
+    QGraphicsScene color_bar;
 private slots:
     void show_run_progress(void);
 private:
-    QString work_path;
+    QString work_path,file_name;
     QSettings settings;
     enum { MaxRecentFiles = 10 };
     QAction *recentFileActs[MaxRecentFiles];
@@ -55,6 +59,13 @@ private slots:
     void on_save_reco_result_clicked();
 
     void openRecentFile(void);
+
+    void update_sdi(void);
+    void update_color_bar(void);
+
+    void on_open_reco_result_clicked();
+
+    void on_zoom_valueChanged(int arg1);
 
 private:
     Ui::MainWindow *ui;

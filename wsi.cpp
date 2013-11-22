@@ -25,6 +25,12 @@ bool wsi::open(const char* file_name)
         openslide_get_level0_dimensions(handle,&w,&h);
         dim[0] = w;
         dim[1] = h;
+        const char* ptr;
+        ptr = openslide_get_property_value(handle,"openslide.mpp-x");
+        if(ptr)
+            std::istringstream(ptr) >> pixel_size;
+        else
+            pixel_size = 0.5;
     }
 
     level = openslide_get_level_count(handle);
@@ -39,11 +45,15 @@ bool wsi::open(const char* file_name)
         r_at_level[index] = openslide_get_level_downsample(handle,index);
     }
 
+    // get map at 50 micron pixel size
     {
-        unsigned int level = openslide_get_best_level_for_downsample(handle,100);
-        map_image.resize(dim_at_level[level]);
-        openslide_read_region(handle,(uint32_t*)&*map_image.begin(),0,0,level,map_image.width(),map_image.height());
-
+        float zoom_ratio = 50.0/pixel_size;
+        unsigned int level = openslide_get_best_level_for_downsample(handle,zoom_ratio);
+        image::color_image I;
+        I.resize(dim_at_level[level]);
+        openslide_read_region(handle,(uint32_t*)&*I.begin(),0,0,level,I.width(),I.height());
+        map_image.resize(image::geometry<2>(dim_at_level[0][0]/zoom_ratio,dim_at_level[0][1]/zoom_ratio));
+        image::resample(I,map_image);
     }
     {
         map_mask.resize(map_image.geometry());
@@ -189,39 +199,59 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,
             }
         }
     }
+    if(terminated)
+        *terminated = true;
+}
 
-    feature_mapping.resize(map_mask.geometry());
-    image::basic_image<float,2> accumulated_w(map_mask.geometry());
-    float ratio = (float)map_mask.width()/(float)dim[0];
+void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,int zoom,bool feature)
+{
+    image::geometry<2> output_geo(map_mask.geometry());
+    output_geo[0] *= zoom;
+    output_geo[1] *= zoom;
+    feature_mapping.clear();
+    feature_mapping.resize(output_geo);
+    image::basic_image<float,2> accumulated_w(output_geo);
+    float ratio = (float)output_geo.width()/(float)dim[0];
     int h = 2; // pixels in map space
-    int window = h + h + h;
+    int window = h*4;
     float var2 = (float)h*(float)h*2.0;
     for(unsigned int index = 0;index < result_pos.size();++index)
     {
         image::vector<2> map_pos(result_pos[index]);
         map_pos *= ratio;
         image::pixel_index<2> map_pos_index(
-                    std::floor(map_pos[0]+0.5),std::floor(map_pos[1]+0.5),map_mask.geometry());
+                    std::floor(map_pos[0]+0.5),std::floor(map_pos[1]+0.5),output_geo);
         std::vector<image::pixel_index<2> > map_neighbors;
-        image::get_neighbors(map_pos_index,map_mask.geometry(),window,map_neighbors);
+        image::get_neighbors(map_pos_index,output_geo,window,map_neighbors);
         for(unsigned int j = 0;j < map_neighbors.size();++j)
-            if(map_mask[map_neighbors[j].index()])
             {
                 image::vector<2> map_neighbor_pos(map_neighbors[j][0],map_neighbors[j][1]);
                 map_neighbor_pos -= map_pos;
                 float w = std::exp(-map_neighbor_pos.length2()/var2);
-                accumulated_w[map_neighbors[j].index()] += w;
-                feature_mapping[map_neighbors[j].index()] += w*result_features[index];
+                if(feature)
+                {
+                    feature_mapping[map_neighbors[j].index()] += w*result_features[index];
+                    accumulated_w[map_neighbors[j].index()] += w;
+                }
+                else
+                {
+                    feature_mapping[map_neighbors[j].index()] += w;
+                }
             }
     }
-    for(unsigned int index = 0;index < accumulated_w.size();++index)
-        if(accumulated_w[index] < 1.0)
-        {
-            accumulated_w[index] = 1.0;
-            feature_mapping[index] = 0.0;
-        }
-    image::divide(feature_mapping,accumulated_w);
-    feature_mapping.save_to_file<image::io::nifti>("test.nii");
-    if(terminated)
-        *terminated = true;
+
+    if(feature)
+    {
+        for(unsigned int index = 0;index < accumulated_w.size();++index)
+            if(accumulated_w[index] < 1.0)
+            {
+                accumulated_w[index] = 1.0;
+                feature_mapping[index] = 0.0;
+            }
+        image::divide(feature_mapping,accumulated_w);
+    }
+    else
+    {
+        image::divide_constant(feature_mapping,h*std::sqrt(2.0*3.1415926)/(float)zoom/(float)zoom);
+    }
 }

@@ -10,6 +10,7 @@ class wsi
 public:
     openslide_t* handle;
     image::geometry<2> dim;
+    float pixel_size; // in micron;
     std::vector<image::geometry<2> > dim_at_level;
     std::vector<double> r_at_level;
     unsigned int level;
@@ -36,10 +37,10 @@ public:
     boost::mutex add_data_mutex;
     std::vector<image::vector<2> > result_pos;
     std::vector<float> result_features;
-    image::basic_image<float,2> feature_mapping;
     unsigned int progress;
     void run(unsigned int block_size,unsigned int extra_size,
              unsigned int thread_count,unsigned int feature_type,train_model* model,bool* terminated);
+    void get_distribution_image(image::basic_image<float,2>& feature_mapping,int zoom,bool feature);
 public:
     static bool can_open(const char* file_name);
 };

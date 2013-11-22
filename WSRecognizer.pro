@@ -32,5 +32,8 @@ HEADERS  += mainwindow.h \
     train_model.hpp \
     qtrainscene.h \
     qmainscene.h
-
+RESOURCES += \
+    icons.qrc
 FORMS    += mainwindow.ui
+
+OTHER_FILES +=

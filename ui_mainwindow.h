@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Tue Nov 5 00:31:28 2013
+** Created: Fri Nov 22 14:44:29 2013
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -17,6 +17,7 @@
 #include <QtGui/QCheckBox>
 #include <QtGui/QComboBox>
 #include <QtGui/QDockWidget>
+#include <QtGui/QDoubleSpinBox>
 #include <QtGui/QGraphicsView>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QHeaderView>
@@ -32,6 +33,7 @@
 #include <QtGui/QTabWidget>
 #include <QtGui/QTableWidget>
 #include <QtGui/QToolBar>
+#include <QtGui/QToolButton>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QWidget>
 
@@ -88,9 +90,16 @@ public:
     QWidget *tab_5;
     QVBoxLayout *verticalLayout_9;
     QHBoxLayout *horizontalLayout_5;
+    QToolButton *open_reco_result;
     QPushButton *save_reco_result;
+    QLabel *label_2;
+    QDoubleSpinBox *color_min;
+    QLabel *label_3;
+    QDoubleSpinBox *color_max;
+    QLabel *zoom_2;
+    QSpinBox *zoom;
     QSpacerItem *horizontalSpacer_3;
-    QSpacerItem *verticalSpacer;
+    QGraphicsView *result_view;
 
     void setupUi(QMainWindow *MainWindow)
     {
@@ -296,12 +305,60 @@ public:
         verticalLayout_9->setContentsMargins(11, 11, 11, 11);
         verticalLayout_9->setObjectName(QString::fromUtf8("verticalLayout_9"));
         horizontalLayout_5 = new QHBoxLayout();
-        horizontalLayout_5->setSpacing(6);
+        horizontalLayout_5->setSpacing(0);
         horizontalLayout_5->setObjectName(QString::fromUtf8("horizontalLayout_5"));
+        open_reco_result = new QToolButton(tab_5);
+        open_reco_result->setObjectName(QString::fromUtf8("open_reco_result"));
+        open_reco_result->setMaximumSize(QSize(23, 22));
+        QIcon icon;
+        icon.addFile(QString::fromUtf8(":/icons/icons/open.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        open_reco_result->setIcon(icon);
+
+        horizontalLayout_5->addWidget(open_reco_result);
+
         save_reco_result = new QPushButton(tab_5);
         save_reco_result->setObjectName(QString::fromUtf8("save_reco_result"));
+        save_reco_result->setMaximumSize(QSize(23, 22));
+        QIcon icon1;
+        icon1.addFile(QString::fromUtf8(":/icons/icons/save.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        save_reco_result->setIcon(icon1);
 
         horizontalLayout_5->addWidget(save_reco_result);
+
+        label_2 = new QLabel(tab_5);
+        label_2->setObjectName(QString::fromUtf8("label_2"));
+
+        horizontalLayout_5->addWidget(label_2);
+
+        color_min = new QDoubleSpinBox(tab_5);
+        color_min->setObjectName(QString::fromUtf8("color_min"));
+
+        horizontalLayout_5->addWidget(color_min);
+
+        label_3 = new QLabel(tab_5);
+        label_3->setObjectName(QString::fromUtf8("label_3"));
+
+        horizontalLayout_5->addWidget(label_3);
+
+        color_max = new QDoubleSpinBox(tab_5);
+        color_max->setObjectName(QString::fromUtf8("color_max"));
+        color_max->setMaximum(100);
+        color_max->setValue(10);
+
+        horizontalLayout_5->addWidget(color_max);
+
+        zoom_2 = new QLabel(tab_5);
+        zoom_2->setObjectName(QString::fromUtf8("zoom_2"));
+
+        horizontalLayout_5->addWidget(zoom_2);
+
+        zoom = new QSpinBox(tab_5);
+        zoom->setObjectName(QString::fromUtf8("zoom"));
+        zoom->setMinimum(1);
+        zoom->setMaximum(10);
+        zoom->setValue(2);
+
+        horizontalLayout_5->addWidget(zoom);
 
         horizontalSpacer_3 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -310,9 +367,10 @@ public:
 
         verticalLayout_9->addLayout(horizontalLayout_5);
 
-        verticalSpacer = new QSpacerItem(20, 122, QSizePolicy::Minimum, QSizePolicy::Expanding);
+        result_view = new QGraphicsView(tab_5);
+        result_view->setObjectName(QString::fromUtf8("result_view"));
 
-        verticalLayout_9->addItem(verticalSpacer);
+        verticalLayout_9->addWidget(result_view);
 
         tabWidget_2->addTab(tab_5, QString());
 
@@ -337,7 +395,7 @@ public:
 
     void retranslateUi(QMainWindow *MainWindow)
     {
-        MainWindow->setWindowTitle(QApplication::translate("MainWindow", "MainWindow", 0, QApplication::UnicodeUTF8));
+        MainWindow->setWindowTitle(QString());
         action_Open->setText(QApplication::translate("MainWindow", "&Open", 0, QApplication::UnicodeUTF8));
         menu_File->setTitle(QApplication::translate("MainWindow", "&File", 0, QApplication::UnicodeUTF8));
         menuRecent_Files->setTitle(QApplication::translate("MainWindow", "Recent Files", 0, QApplication::UnicodeUTF8));
@@ -361,7 +419,11 @@ public:
         run->setText(QApplication::translate("MainWindow", "Run", 0, QApplication::UnicodeUTF8));
         label->setText(QApplication::translate("MainWindow", "Thread Count", 0, QApplication::UnicodeUTF8));
         tabWidget_2->setTabText(tabWidget_2->indexOf(tab_4), QApplication::translate("MainWindow", "Tab 1", 0, QApplication::UnicodeUTF8));
-        save_reco_result->setText(QApplication::translate("MainWindow", "Save...", 0, QApplication::UnicodeUTF8));
+        open_reco_result->setText(QString());
+        save_reco_result->setText(QString());
+        label_2->setText(QApplication::translate("MainWindow", "min:", 0, QApplication::UnicodeUTF8));
+        label_3->setText(QApplication::translate("MainWindow", "max:", 0, QApplication::UnicodeUTF8));
+        zoom_2->setText(QApplication::translate("MainWindow", "zoom", 0, QApplication::UnicodeUTF8));
         tabWidget_2->setTabText(tabWidget_2->indexOf(tab_5), QApplication::translate("MainWindow", "Tab 2", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 
