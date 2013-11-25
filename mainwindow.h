@@ -65,7 +65,8 @@ private slots:
 
     void on_open_reco_result_clicked();
 
-    void on_zoom_valueChanged(int arg1);
+
+    void on_update_image_clicked();
 
 private:
     Ui::MainWindow *ui;

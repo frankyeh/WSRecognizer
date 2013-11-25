@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Fri Nov 22 14:44:29 2013
+** Created: Sat Nov 23 17:37:11 2013
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -96,8 +96,10 @@ public:
     QDoubleSpinBox *color_min;
     QLabel *label_3;
     QDoubleSpinBox *color_max;
-    QLabel *zoom_2;
-    QSpinBox *zoom;
+    QLabel *label_4;
+    QSpinBox *resolution;
+    QLabel *label_5;
+    QToolButton *update_image;
     QSpacerItem *horizontalSpacer_3;
     QGraphicsView *result_view;
 
@@ -342,23 +344,36 @@ public:
 
         color_max = new QDoubleSpinBox(tab_5);
         color_max->setObjectName(QString::fromUtf8("color_max"));
-        color_max->setMaximum(100);
-        color_max->setValue(10);
+        color_max->setDecimals(1);
+        color_max->setMaximum(10);
+        color_max->setValue(5);
 
         horizontalLayout_5->addWidget(color_max);
 
-        zoom_2 = new QLabel(tab_5);
-        zoom_2->setObjectName(QString::fromUtf8("zoom_2"));
+        label_4 = new QLabel(tab_5);
+        label_4->setObjectName(QString::fromUtf8("label_4"));
 
-        horizontalLayout_5->addWidget(zoom_2);
+        horizontalLayout_5->addWidget(label_4);
 
-        zoom = new QSpinBox(tab_5);
-        zoom->setObjectName(QString::fromUtf8("zoom"));
-        zoom->setMinimum(1);
-        zoom->setMaximum(10);
-        zoom->setValue(2);
+        resolution = new QSpinBox(tab_5);
+        resolution->setObjectName(QString::fromUtf8("resolution"));
+        resolution->setMinimum(10);
+        resolution->setMaximum(100);
+        resolution->setSingleStep(10);
+        resolution->setValue(40);
 
-        horizontalLayout_5->addWidget(zoom);
+        horizontalLayout_5->addWidget(resolution);
+
+        label_5 = new QLabel(tab_5);
+        label_5->setObjectName(QString::fromUtf8("label_5"));
+
+        horizontalLayout_5->addWidget(label_5);
+
+        update_image = new QToolButton(tab_5);
+        update_image->setObjectName(QString::fromUtf8("update_image"));
+        update_image->setMaximumSize(QSize(16777215, 22));
+
+        horizontalLayout_5->addWidget(update_image);
 
         horizontalSpacer_3 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -423,7 +438,9 @@ public:
         save_reco_result->setText(QString());
         label_2->setText(QApplication::translate("MainWindow", "min:", 0, QApplication::UnicodeUTF8));
         label_3->setText(QApplication::translate("MainWindow", "max:", 0, QApplication::UnicodeUTF8));
-        zoom_2->setText(QApplication::translate("MainWindow", "zoom", 0, QApplication::UnicodeUTF8));
+        label_4->setText(QApplication::translate("MainWindow", "resolution:", 0, QApplication::UnicodeUTF8));
+        label_5->setText(QApplication::translate("MainWindow", "mm", 0, QApplication::UnicodeUTF8));
+        update_image->setText(QApplication::translate("MainWindow", "Update", 0, QApplication::UnicodeUTF8));
         tabWidget_2->setTabText(tabWidget_2->indexOf(tab_5), QApplication::translate("MainWindow", "Tab 2", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 

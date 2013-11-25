@@ -40,7 +40,7 @@ public:
     unsigned int progress;
     void run(unsigned int block_size,unsigned int extra_size,
              unsigned int thread_count,unsigned int feature_type,train_model* model,bool* terminated);
-    void get_distribution_image(image::basic_image<float,2>& feature_mapping,int zoom,bool feature);
+    void get_distribution_image(image::basic_image<float,2>& feature_mapping,float resolution_mm,float band_width_mm,bool feature);
 public:
     static bool can_open(const char* file_name);
 };

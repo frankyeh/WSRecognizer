@@ -203,18 +203,18 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,
         *terminated = true;
 }
 
-void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,int zoom,bool feature)
+void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,float resolution_mm,float band_width_mm,bool feature)
 {
-    image::geometry<2> output_geo(map_mask.geometry());
-    output_geo[0] *= zoom;
-    output_geo[1] *= zoom;
+    image::geometry<2> output_geo;
+    output_geo[0] = (float)dim[0]*pixel_size/resolution_mm;
+    output_geo[1] = (float)dim[1]*pixel_size/resolution_mm;
     feature_mapping.clear();
     feature_mapping.resize(output_geo);
     image::basic_image<float,2> accumulated_w(output_geo);
-    float ratio = (float)output_geo.width()/(float)dim[0];
-    int h = 2; // pixels in map space
-    int window = h*4;
-    float var2 = (float)h*(float)h*2.0;
+    float ratio = pixel_size/resolution_mm;
+    float h = band_width_mm/resolution_mm; // band_width in pixels
+    int window = std::max<int>(1,h*4.0);  // sampling window in pixels
+    float var2 = h*h*2.0;
     for(unsigned int index = 0;index < result_pos.size();++index)
     {
         image::vector<2> map_pos(result_pos[index]);
@@ -252,6 +252,7 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,in
     }
     else
     {
-        image::divide_constant(feature_mapping,h*std::sqrt(2.0*3.1415926)/(float)zoom/(float)zoom);
+        // output unit in counts per 100 mm ^2
+        image::divide_constant(feature_mapping,h*std::sqrt(2.0*3.1415926)*resolution_mm*resolution_mm/100.0);
     }
 }
