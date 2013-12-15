@@ -22,7 +22,8 @@ SOURCES += main.cpp\
     qmapgraphicsscene.cpp \
     train_model.cpp \
     qtrainscene.cpp \
-    qmainscene.cpp
+    qmainscene.cpp \
+    rec.cpp
 
 HEADERS  += mainwindow.h \
     openslide-features.h \

@@ -30,7 +30,7 @@ private:
     bool terminated;
 private:
     image::basic_image<float,2> sdi_value;
-    image::color_image bar,colormap,sdi_image;
+    image::color_image sdi_image;
     QGraphicsScene color_bar;
 private slots:
     void show_run_progress(void);
@@ -67,6 +67,8 @@ private slots:
 
 
     void on_update_image_clicked();
+
+    void on_clear_learning_clicked();
 
 private:
     Ui::MainWindow *ui;

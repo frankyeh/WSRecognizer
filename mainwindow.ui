@@ -65,7 +65,13 @@
     <addaction name="separator"/>
     <addaction name="menuRecent_Files"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+   </widget>
    <addaction name="menu_File"/>
+   <addaction name="menuView"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -180,7 +186,7 @@
      <item>
       <widget class="QTabWidget" name="tabWidget_2">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab_4">
         <attribute name="title">
@@ -211,6 +217,13 @@
                <string>as background</string>
               </property>
              </item>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="clear_learning">
+             <property name="text">
+              <string>Clear</string>
+             </property>
             </widget>
            </item>
            <item>
@@ -342,7 +355,7 @@
               <number>1</number>
              </property>
              <property name="maximum">
-              <double>10.000000000000000</double>
+              <double>50.000000000000000</double>
              </property>
              <property name="value">
               <double>5.000000000000000</double>

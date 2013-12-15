@@ -7,16 +7,7 @@
 #include "wsi.hpp"
 
 
-unsigned char color_spectrum_value(unsigned char center, unsigned char value)
-{
-    unsigned char dif = center > value ? center-value:value-center;
-    if(dif < 32)
-        return 255;
-    dif -= 32;
-    if(dif >= 64)
-        return 0;
-    return 255-(dif << 2);
-}
+extern image::color_image bar,colormap;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -40,23 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->menuRecent_Files->addAction(recentFileActs[i]);
     }
 
-    {
-        colormap.resize(image::geometry<2>(256,1));
-        bar.resize(image::geometry<2>(20,256));
-        for(unsigned int index = 0;index < 256;++index)
-        {
-            image::rgb_color color;
-            color.r = color_spectrum_value(64,index);
-            color.g = color_spectrum_value(128,index);
-            color.b = color_spectrum_value(128+64,index);
-            colormap[255-index] = color;
-            if(index && index != 255)
-            {
-                int sep = (index % 51 == 0) ? 5 : 1;
-                std::fill(bar.begin()+index*20+sep,bar.begin()+(index+1)*20-sep,color);
-            }
-        }
-    }
+
 
     QObject::connect(ui->color_min,SIGNAL(valueChanged(double)),this,SLOT(update_color_bar()));
     QObject::connect(ui->color_max,SIGNAL(valueChanged(double)),this,SLOT(update_color_bar()));
@@ -176,6 +151,11 @@ void MainWindow::on_open_training_image_clicked()
     train_scene.ml.add_data(data,ui->stain_type->currentIndex());
     train_scene.update();
 }
+void MainWindow::on_clear_learning_clicked()
+{
+    train_scene.ml.clear();
+    train_scene.update();
+}
 
 void MainWindow::on_recognize_stains_clicked()
 {
@@ -226,7 +206,7 @@ void MainWindow::show_run_progress(void)
 }
 void MainWindow::update_sdi(void)
 {
-    w->get_distribution_image(sdi_value,ui->resolution->value(),ui->resolution->value(),false);
+    w->get_distribution_image(sdi_value,ui->resolution->value(),ui->resolution->value(),true);
 }
 
 void MainWindow::update_color_bar(void)
@@ -348,3 +328,6 @@ void MainWindow::on_update_image_clicked()
     update_sdi();
     update_color_bar();
 }
+
+
+

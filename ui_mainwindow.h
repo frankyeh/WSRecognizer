@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Sat Nov 23 17:37:11 2013
+** Created: Sat Dec 14 23:19:59 2013
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -53,6 +53,7 @@ public:
     QMenuBar *menuBar;
     QMenu *menu_File;
     QMenu *menuRecent_Files;
+    QMenu *menuView;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
     QDockWidget *dockWidget;
@@ -79,6 +80,7 @@ public:
     QHBoxLayout *horizontalLayout;
     QPushButton *open_training_image;
     QComboBox *stain_type;
+    QPushButton *clear_learning;
     QSpacerItem *horizontalSpacer;
     QPushButton *recognize_stains;
     QGraphicsView *train_view;
@@ -148,6 +150,8 @@ public:
         menu_File->setObjectName(QString::fromUtf8("menu_File"));
         menuRecent_Files = new QMenu(menu_File);
         menuRecent_Files->setObjectName(QString::fromUtf8("menuRecent_Files"));
+        menuView = new QMenu(menuBar);
+        menuView->setObjectName(QString::fromUtf8("menuView"));
         MainWindow->setMenuBar(menuBar);
         mainToolBar = new QToolBar(MainWindow);
         mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
@@ -253,6 +257,11 @@ public:
 
         horizontalLayout->addWidget(stain_type);
 
+        clear_learning = new QPushButton(tab_4);
+        clear_learning->setObjectName(QString::fromUtf8("clear_learning"));
+
+        horizontalLayout->addWidget(clear_learning);
+
         horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout->addItem(horizontalSpacer);
@@ -345,7 +354,7 @@ public:
         color_max = new QDoubleSpinBox(tab_5);
         color_max->setObjectName(QString::fromUtf8("color_max"));
         color_max->setDecimals(1);
-        color_max->setMaximum(10);
+        color_max->setMaximum(50);
         color_max->setValue(5);
 
         horizontalLayout_5->addWidget(color_max);
@@ -395,6 +404,7 @@ public:
         MainWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(1), dockWidget_2);
 
         menuBar->addAction(menu_File->menuAction());
+        menuBar->addAction(menuView->menuAction());
         menu_File->addAction(action_Open);
         menu_File->addSeparator();
         menu_File->addAction(menuRecent_Files->menuAction());
@@ -414,6 +424,7 @@ public:
         action_Open->setText(QApplication::translate("MainWindow", "&Open", 0, QApplication::UnicodeUTF8));
         menu_File->setTitle(QApplication::translate("MainWindow", "&File", 0, QApplication::UnicodeUTF8));
         menuRecent_Files->setTitle(QApplication::translate("MainWindow", "Recent Files", 0, QApplication::UnicodeUTF8));
+        menuView->setTitle(QApplication::translate("MainWindow", "View", 0, QApplication::UnicodeUTF8));
         dockWidget->setWindowTitle(QApplication::translate("MainWindow", "Slide Overview", 0, QApplication::UnicodeUTF8));
         show_map_mask->setText(QApplication::translate("MainWindow", "Show mask", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("MainWindow", "Tab 1", 0, QApplication::UnicodeUTF8));
@@ -430,6 +441,7 @@ public:
          << QApplication::translate("MainWindow", "as foreground", 0, QApplication::UnicodeUTF8)
          << QApplication::translate("MainWindow", "as background", 0, QApplication::UnicodeUTF8)
         );
+        clear_learning->setText(QApplication::translate("MainWindow", "Clear", 0, QApplication::UnicodeUTF8));
         recognize_stains->setText(QApplication::translate("MainWindow", "Recognize Stains", 0, QApplication::UnicodeUTF8));
         run->setText(QApplication::translate("MainWindow", "Run", 0, QApplication::UnicodeUTF8));
         label->setText(QApplication::translate("MainWindow", "Thread Count", 0, QApplication::UnicodeUTF8));
