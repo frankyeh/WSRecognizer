@@ -1,4 +1,5 @@
 #include "train_model.hpp"
+#include "libs/gzip_interface.hpp"
 void train_model::get_position(const image::vector<3,double>& pos,
                   const image::vector<2,double>& x_dir,
                   const image::vector<2,double>& y_dir,
@@ -25,18 +26,20 @@ train_model::train_model(void):solution_space(256*256*256)
 }
 unsigned char train_model::predict(image::rgb_color value)
 {
-    if(!nearest_neighbor.get())
+    if(!ml_model.get())
     {
-        nearest_neighbor.reset(new model_type);
-        nearest_neighbor->learn(data.features.begin(),data.features.end(),3,data.classification.begin());
+        ml_model.reset(new model_type);
+        ml_model->learn(data.features.begin(),data.features.end(),3,data.classification.begin());
+        std::fill(solution_space.begin(),solution_space.end(),0);
     }
     unsigned char result = solution_space[value.color];
     if (!result)
     {
+        double atts[3];
         atts[0] = ((double)value.r/255.0);
         atts[1] = ((double)value.g/255.0);
         atts[2] = ((double)value.b/255.0);
-        result = solution_space[value.color] = nearest_neighbor->predict(atts)+1;
+        result = solution_space[value.color] = ml_model->predict(atts)+1;
     }
     return result-1;
 }
@@ -52,51 +55,48 @@ void train_model::recognize(const image::color_image& I,image::grayscale_image& 
         if(terminated && *terminated)
             return;
     }
-    for(unsigned int iter = 0;iter < 4;++iter)
-        image::morphology::smoothing(result);
+    if(smoothing)
+        image::morphology::recursive_smoothing(result,smoothing);
 }
 void train_model::cca(const image::grayscale_image& result,
-                      unsigned int border,unsigned char feature_type,
-         std::vector<image::vector<2> >& pos,std::vector<float>& features)
+                      float pixel_size,
+                      unsigned int border,
+                      std::vector<image::vector<2> >& pos,
+                      std::vector<float>& features)
 {
     image::basic_image<unsigned int,2> labels;
     std::vector<std::vector<unsigned int> > regions;
     image::morphology::connected_component_labeling(result,labels,regions);
     unsigned int upper_border = result.width()-border;
-    switch(feature_type)
+    std::vector<image::vector<2,float> > center_of_mass(regions.size());
+    std::vector<image::vector<2,int> > max_pos(regions.size()),min_pos(regions.size());
+    std::fill(min_pos.begin(),min_pos.end(),image::vector<2,float>(result.geometry()[0],result.geometry()[1]));
+    for (image::pixel_index<2> index;index.is_valid(result.geometry());index.next(result.geometry()))
     {
-    case 0:// area
-        break;
-    case 1:// size
-        {
-            std::vector<image::vector<2,float> > center_of_mass(regions.size());
-            std::vector<image::vector<2,int> > max_pos(regions.size()),min_pos(regions.size());
-            std::fill(min_pos.begin(),min_pos.end(),image::vector<2,float>(result.geometry()[0],result.geometry()[1]));
-            for (image::pixel_index<2> index;index.is_valid(result.geometry());index.next(result.geometry()))
-            {
-                size_t region_id = labels[index.index()]-1;
-                if (!result[index.index()] || regions[region_id].empty())
-                    continue;
-                center_of_mass[region_id] += image::vector<2,float>(index);
-                max_pos[region_id][0] = std::max<int>(index[0],max_pos[region_id][0]);
-                max_pos[region_id][1] = std::max<int>(index[1],max_pos[region_id][1]);
-                min_pos[region_id][0] = std::min<int>(index[0],min_pos[region_id][0]);
-                min_pos[region_id][1] = std::min<int>(index[1],min_pos[region_id][1]);
-            }
+        size_t region_id = labels[index.index()]-1;
+        if (!result[index.index()] || regions[region_id].empty())
+            continue;
+        center_of_mass[region_id] += image::vector<2,float>(index);
+        max_pos[region_id][0] = std::max<int>(index[0],max_pos[region_id][0]);
+        max_pos[region_id][1] = std::max<int>(index[1],max_pos[region_id][1]);
+        min_pos[region_id][0] = std::min<int>(index[0],min_pos[region_id][0]);
+        min_pos[region_id][1] = std::min<int>(index[1],min_pos[region_id][1]);
+    }
 
-            for(size_t index = 0;index < regions.size();++index)
-            {
-                if(regions[index].empty())
-                    continue;
-                center_of_mass[index] /= regions[index].size();
-                if(center_of_mass[index][0] < border || center_of_mass[index][0] >= upper_border ||
-                   center_of_mass[index][1] < border || center_of_mass[index][1] >= upper_border)
-                    continue;
-                pos.push_back(center_of_mass[index]);
-                features.push_back((max_pos[index][0]-min_pos[index][0]+(max_pos[index][1]-min_pos[index][1]))/2.0);
-            }
-        }
-        break;
+    for(size_t index = 0;index < regions.size();++index)
+    {
+        if(regions[index].empty())
+            continue;
+        center_of_mass[index] /= regions[index].size();
+        if(center_of_mass[index][0] < border || center_of_mass[index][0] >= upper_border ||
+           center_of_mass[index][1] < border || center_of_mass[index][1] >= upper_border)
+            continue;
+        float feature_size = (max_pos[index][0]-min_pos[index][0]+(max_pos[index][1]-min_pos[index][1]))/2.0;
+        feature_size *= pixel_size; // now in micron
+        if(feature_size > max_size || feature_size < min_size)
+            continue;
+        pos.push_back(center_of_mass[index]);
+        features.push_back(feature_size);
     }
 }
 
@@ -106,8 +106,8 @@ void train_model::clear()
     std::fill(solution_space.begin(),solution_space.end(),0);
     data.classification.clear();
     data.features.clear();
-    update_classifier_map();
-    nearest_neighbor.reset(0);
+    classifier_map.clear();
+    ml_model.reset(0);
 }
 void train_model::update_classifier_map(void)
 {
@@ -147,22 +147,86 @@ void train_model::update_classifier_map(void)
     }
 }
 
+bool train_model::load_from_file(const char* file_name)
+{
+    gz_mat_read mat;
+    if(mat.load_from_file(file_name))
+        return false;
+    unsigned int row,col;
+    const unsigned int* color = 0;
+    const unsigned char* label = 0;
+    if(!mat.read("color",row,col,color) ||
+       !mat.read("label",row,col,label))
+        return false;
+    image::ml::training_data<double,unsigned char> new_data;
+    new_data.features.resize(col);
+    new_data.classification.resize(col);
+    for(unsigned int index = 0;index < data.features.size();++index)
+    {
+        image::rgb_color cur_color;
+        cur_color.color = color[index];
+        data.features[index].resize(3);
+        data.features[index][0] = cur_color.r;
+        data.features[index][1] = cur_color.g;
+        data.features[index][2] = cur_color.b;
+        data.classification[index] = label[index];
+    }
+    const unsigned int* param = 0;
+    if(!mat.read("param",row,col,param))
+        return false;
+    clear();
+    data.features.swap(new_data.features);
+    data.classification.swap(new_data.classification);
+    smoothing = param[0];
+    min_size = param[1];
+    max_size = param[2];
+    update_classifier_map();
+    return true;
+}
+
+void train_model::save_to_file(const char* file_name)
+{
+    if(data.features.empty())
+        return;
+    gz_mat_write mat(file_name);
+
+    std::vector<unsigned int> color(data.features.size());
+    std::vector<unsigned char> label(data.classification.size());
+    for(unsigned int index = 0;index < color.size();++index)
+    {
+        color[index] = image::rgb_color(data.features[index][0],data.features[index][1],data.features[index][2]);
+        label[index] = data.classification[index];
+    }
+    std::vector<unsigned int> param(10);
+    param[0] = smoothing;
+    param[1] = min_size;
+    param[2] = max_size;
+    mat.write("color",&*color.begin(),1,color.size());
+    mat.write("label",&*label.begin(),1,label.size());
+    mat.write("param",&*param.begin(),1,param.size());
+}
+
 void train_model::add_data(const image::color_image& I,bool background)
 {
     for (size_t index = 0;index < I.size();++index)
     {
-        image::rgb_color value = I[index];
-        if (value == image::rgb_color(255,255,255))
+        if (I[index] == image::rgb_color(255,255,255))
             continue;
-        double atts[3];
-        atts[0] = ((double)value.r/255.0);
-        atts[1] = ((double)value.g/255.0);
-        atts[2] = ((double)value.b/255.0);
-        data.features.resize(data.features.size()+1);
-        data.features.back().resize(3);
-        std::copy(atts,atts+3,data.features.back().begin());
-        data.classification.push_back(background ? 0 : 1);
+        add_data(I[index],background);
     }
-
     update_classifier_map();
+    ml_model.reset(0);
+}
+
+void train_model::add_data(image::rgb_color color,bool background)
+{
+    double atts[3];
+    atts[0] = ((double)color.r/255.0);
+    atts[1] = ((double)color.g/255.0);
+    atts[2] = ((double)color.b/255.0);
+    data.features.resize(data.features.size()+1);
+    data.features.back().resize(3);
+    std::copy(atts,atts+3,data.features.back().begin());
+    data.classification.push_back(background ? 0 : 1);
+    ml_model.reset(0);
 }

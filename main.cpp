@@ -8,6 +8,7 @@
 
 namespace po = boost::program_options;
 int rec(int ac, char *av[]);
+int gen(int ac, char *av[]);
 
 
 openslide_can_open_type openslide_can_open = 0;
@@ -111,6 +112,8 @@ int main(int ac, char *av[])
             }
             if(vm["action"].as<std::string>() == std::string("rec"))
                 return rec(ac,av);
+            if(vm["action"].as<std::string>() == std::string("gen"))
+                return gen(ac,av);
         }
         return 1;
     }

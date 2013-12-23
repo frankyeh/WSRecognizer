@@ -7,15 +7,10 @@
 #include "boost/program_options.hpp"
 #include "wsi.hpp"
 #include "train_model.hpp"
-extern image::color_image bar,colormap;
+#include "libs/gzip_interface.hpp"
 namespace po = boost::program_options;
-/**
- * @brief commandline recognition
- * @param ac
- * @param av
- * @return
- * @example: --action=rec --source=G4_SYS05-678.ndpi --background=1.bmp --foreground=2.bmp
- */
+
+
 int rec(int ac, char *av[])
 {
     po::options_description rec_desc("recognition options");
@@ -26,11 +21,6 @@ int rec(int ac, char *av[])
     ("background", po::value<std::string>(), "assign the mask file")
     ("foreground", po::value<std::string>(), "assign the mask file")
     ("thread_count", po::value<int>()->default_value(4), "specify number of threads")
-    ("feature_type", po::value<int>()->default_value(1), "specify feature type")
-    ("output_resolution", po::value<int>()->default_value(20), "specify output resolution")
-    ("output_min", po::value<float>()->default_value(0), "specify output resolution")
-    ("output_max", po::value<float>()->default_value(20), "specify output resolution")
-    ("output", po::value<std::string>(), "specify output file name")
     ;
 
     if(!ac)
@@ -70,7 +60,7 @@ int rec(int ac, char *av[])
         QImage I;
         if(!I.load(filename.c_str()))
         {
-            std::cout << "Invalid background image format" << std::endl;
+            std::cout << "Cannot load the background image" << std::endl;
             return -1;
         }
         QImage colorI = I.convertToFormat(QImage::Format_ARGB32);
@@ -86,7 +76,7 @@ int rec(int ac, char *av[])
         QImage I;
         if(!I.load(filename.c_str()))
         {
-            std::cout << "Invalid foreground image format" << std::endl;
+            std::cout << "Cannot load the foreground image" << std::endl;
             return -1;
         }
         QImage colorI = I.convertToFormat(QImage::Format_ARGB32);
@@ -97,56 +87,40 @@ int rec(int ac, char *av[])
         std::cout << "foreground image loaded." << std::endl;
     }
 
-    std::cout << "feature_type:" << vm["feature_type"].as<int>() << std::endl;
     std::cout << "recognization using " << vm["thread_count"].as<int>() <<" thread(s)..." << std::endl;
 
     bool terminated = false;
     ml.predict(0);
-    w.run(800,100,vm["thread_count"].as<int>(),vm["feature_type"].as<int>(),&ml,&terminated);
+    w.run(800,100,vm["thread_count"].as<int>(),&ml,&terminated);
     std::cout << "recognition completed." << std::endl;
-
-    image::basic_image<float,2> sdi_value;
-    image::color_image sdi_image;
+    if(w.result_pos.empty())
     {
-        std::cout << "generating sdi..." << std::endl;
-        std::cout << "output_resolution:" << vm["output_resolution"].as<int>() << std::endl;
-        std::cout << "output_min:" << vm["output_min"].as<float>() << std::endl;
-        std::cout << "output_max:" << vm["output_max"].as<float>() << std::endl;
-        w.get_distribution_image(sdi_value,
-                                  vm["output_resolution"].as<int>(),
-                                  vm["output_resolution"].as<int>(),
-                                  vm["feature_type"].as<int>());
-        sdi_image.resize(sdi_value.geometry());
-        float min_value = vm["output_min"].as<float>();
-        float max_value = vm["output_max"].as<float>();
-        if(max_value > min_value)
+        std::cout << "No target recognized. Process aborted. Please check the training data?" << std::endl;
+        return 0;
+    }
+    std::cout << "A total of " << w.result_pos.size() << " targets identified" << std::endl;
+
+    std::string output_name = vm["source"].as<std::string>();
+    output_name += ".";
+    output_name += QFileInfo(vm["foreground"].as<std::string>().c_str()).baseName().toLocal8Bit().begin();
+    output_name += ".reg.gz";
+    {
+        std::cout << "Write to file" << output_name.c_str() << std::endl;
+        gz_mat_write mat(output_name.c_str());
+        mat.write("dimension",&*w.dim.begin(),1,2);
+        mat.write("pixel_size",&w.pixel_size,1,1);
+        std::vector<float> pos_x(w.result_pos.size()),pos_y(w.result_pos.size());
+        for(unsigned int index = 0;index < w.result_pos.size();++index)
         {
-            float r = 255.99/(max_value-min_value);
-            for(unsigned int index = 0;index < sdi_value.size();++index)
-            {
-                int i = std::max<int>(0,std::min<int>(255,std::floor((sdi_value[index]-min_value)*r)));
-                sdi_image[index] = colormap[i];
-            }
+            pos_x[index] = w.result_pos[index][0];
+            pos_y[index] = w.result_pos[index][1];
         }
+        mat.write("x",&*pos_x.begin(),1,pos_x.size());
+        mat.write("y",&*pos_y.begin(),1,pos_x.size());
+        mat.write("length",&*w.result_features.begin(),1,w.result_features.size());
     }
 
-    {
-        std::string output_filename = vm["source"].as<std::string>() + ".tif";
-        if(vm.count("output"))
-            output_filename = vm["output"].as<std::string>();
 
-        if(QFileInfo(output_filename.c_str()).completeSuffix() == ".mat")
-        {
-            image::io::mat_write mat(output_filename.c_str());
-            mat.write(QFileInfo(output_filename.c_str()).baseName().toLocal8Bit().begin(),&*sdi_value.begin(),sdi_value.width(),sdi_value.height());
-        }
-        else
-        {
-            std::cout << "output figures to " << output_filename << std::endl;
-            QImage I((unsigned char*)&*sdi_image.begin(),sdi_image.width(),sdi_image.height(),QImage::Format_RGB32);
-            I.save(output_filename.c_str());
-        }
-    }
 
     return 0;
 }

@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Sat Dec 14 23:19:59 2013
+** Created: Mon Dec 23 00:14:30 2013
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -15,7 +15,6 @@
 #include <QtGui/QApplication>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QCheckBox>
-#include <QtGui/QComboBox>
 #include <QtGui/QDockWidget>
 #include <QtGui/QDoubleSpinBox>
 #include <QtGui/QGraphicsView>
@@ -48,6 +47,7 @@ public:
     QWidget *widget;
     QVBoxLayout *verticalLayout_7;
     QHBoxLayout *horizontalLayout_2;
+    QCheckBox *show_recog;
     QSpacerItem *horizontalSpacer_2;
     QGraphicsView *main_view;
     QMenuBar *menuBar;
@@ -78,12 +78,26 @@ public:
     QWidget *tab_4;
     QVBoxLayout *verticalLayout_8;
     QHBoxLayout *horizontalLayout;
-    QPushButton *open_training_image;
-    QComboBox *stain_type;
-    QPushButton *clear_learning;
-    QSpacerItem *horizontalSpacer;
+    QToolButton *new_model;
+    QToolButton *open_model;
+    QToolButton *save_model;
     QPushButton *recognize_stains;
+    QSpacerItem *horizontalSpacer;
     QGraphicsView *train_view;
+    QHBoxLayout *horizontalLayout_7;
+    QLabel *label_11;
+    QSpinBox *smoothing;
+    QLabel *label_12;
+    QSpacerItem *horizontalSpacer_5;
+    QHBoxLayout *horizontalLayout_6;
+    QLabel *label_6;
+    QSpinBox *min_size;
+    QLabel *label_8;
+    QLabel *label_10;
+    QLabel *label_7;
+    QSpinBox *max_size;
+    QLabel *label_9;
+    QSpacerItem *horizontalSpacer_4;
     QHBoxLayout *horizontalLayout_4;
     QProgressBar *progressBar;
     QPushButton *run;
@@ -109,24 +123,29 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
-        MainWindow->resize(752, 457);
+        MainWindow->resize(752, 470);
         action_Open = new QAction(MainWindow);
         action_Open->setObjectName(QString::fromUtf8("action_Open"));
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         verticalLayout_2 = new QVBoxLayout(centralWidget);
-        verticalLayout_2->setSpacing(6);
-        verticalLayout_2->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_2->setSpacing(0);
+        verticalLayout_2->setContentsMargins(6, 6, 6, 6);
         verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
         widget = new QWidget(centralWidget);
         widget->setObjectName(QString::fromUtf8("widget"));
         verticalLayout_7 = new QVBoxLayout(widget);
-        verticalLayout_7->setSpacing(6);
-        verticalLayout_7->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_7->setSpacing(0);
+        verticalLayout_7->setContentsMargins(0, 0, 0, 0);
         verticalLayout_7->setObjectName(QString::fromUtf8("verticalLayout_7"));
         horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setSpacing(6);
         horizontalLayout_2->setObjectName(QString::fromUtf8("horizontalLayout_2"));
+        show_recog = new QCheckBox(widget);
+        show_recog->setObjectName(QString::fromUtf8("show_recog"));
+
+        horizontalLayout_2->addWidget(show_recog);
+
         horizontalSpacer_2 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout_2->addItem(horizontalSpacer_2);
@@ -247,29 +266,45 @@ public:
         horizontalLayout = new QHBoxLayout();
         horizontalLayout->setSpacing(0);
         horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
-        open_training_image = new QPushButton(tab_4);
-        open_training_image->setObjectName(QString::fromUtf8("open_training_image"));
+        new_model = new QToolButton(tab_4);
+        new_model->setObjectName(QString::fromUtf8("new_model"));
+        new_model->setMaximumSize(QSize(23, 22));
+        QIcon icon;
+        icon.addFile(QString::fromUtf8(":/icons/icons/new.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        new_model->setIcon(icon);
 
-        horizontalLayout->addWidget(open_training_image);
+        horizontalLayout->addWidget(new_model);
 
-        stain_type = new QComboBox(tab_4);
-        stain_type->setObjectName(QString::fromUtf8("stain_type"));
+        open_model = new QToolButton(tab_4);
+        open_model->setObjectName(QString::fromUtf8("open_model"));
+        open_model->setMaximumSize(QSize(23, 22));
+        QIcon icon1;
+        icon1.addFile(QString::fromUtf8(":/icons/icons/open.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        open_model->setIcon(icon1);
 
-        horizontalLayout->addWidget(stain_type);
+        horizontalLayout->addWidget(open_model);
 
-        clear_learning = new QPushButton(tab_4);
-        clear_learning->setObjectName(QString::fromUtf8("clear_learning"));
+        save_model = new QToolButton(tab_4);
+        save_model->setObjectName(QString::fromUtf8("save_model"));
+        save_model->setMaximumSize(QSize(23, 22));
+        QIcon icon2;
+        icon2.addFile(QString::fromUtf8(":/icons/icons/save.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        save_model->setIcon(icon2);
 
-        horizontalLayout->addWidget(clear_learning);
+        horizontalLayout->addWidget(save_model);
+
+        recognize_stains = new QPushButton(tab_4);
+        recognize_stains->setObjectName(QString::fromUtf8("recognize_stains"));
+        recognize_stains->setMaximumSize(QSize(16777215, 22));
+        QIcon icon3;
+        icon3.addFile(QString::fromUtf8(":/icons/icons/run.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        recognize_stains->setIcon(icon3);
+
+        horizontalLayout->addWidget(recognize_stains);
 
         horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout->addItem(horizontalSpacer);
-
-        recognize_stains = new QPushButton(tab_4);
-        recognize_stains->setObjectName(QString::fromUtf8("recognize_stains"));
-
-        horizontalLayout->addWidget(recognize_stains);
 
 
         verticalLayout_8->addLayout(horizontalLayout);
@@ -278,6 +313,84 @@ public:
         train_view->setObjectName(QString::fromUtf8("train_view"));
 
         verticalLayout_8->addWidget(train_view);
+
+        horizontalLayout_7 = new QHBoxLayout();
+        horizontalLayout_7->setSpacing(6);
+        horizontalLayout_7->setObjectName(QString::fromUtf8("horizontalLayout_7"));
+        label_11 = new QLabel(tab_4);
+        label_11->setObjectName(QString::fromUtf8("label_11"));
+
+        horizontalLayout_7->addWidget(label_11);
+
+        smoothing = new QSpinBox(tab_4);
+        smoothing->setObjectName(QString::fromUtf8("smoothing"));
+        smoothing->setMaximum(10);
+        smoothing->setSingleStep(1);
+        smoothing->setValue(5);
+
+        horizontalLayout_7->addWidget(smoothing);
+
+        label_12 = new QLabel(tab_4);
+        label_12->setObjectName(QString::fromUtf8("label_12"));
+
+        horizontalLayout_7->addWidget(label_12);
+
+        horizontalSpacer_5 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_7->addItem(horizontalSpacer_5);
+
+
+        verticalLayout_8->addLayout(horizontalLayout_7);
+
+        horizontalLayout_6 = new QHBoxLayout();
+        horizontalLayout_6->setSpacing(0);
+        horizontalLayout_6->setObjectName(QString::fromUtf8("horizontalLayout_6"));
+        label_6 = new QLabel(tab_4);
+        label_6->setObjectName(QString::fromUtf8("label_6"));
+
+        horizontalLayout_6->addWidget(label_6);
+
+        min_size = new QSpinBox(tab_4);
+        min_size->setObjectName(QString::fromUtf8("min_size"));
+        min_size->setMaximum(50);
+        min_size->setSingleStep(5);
+
+        horizontalLayout_6->addWidget(min_size);
+
+        label_8 = new QLabel(tab_4);
+        label_8->setObjectName(QString::fromUtf8("label_8"));
+
+        horizontalLayout_6->addWidget(label_8);
+
+        label_10 = new QLabel(tab_4);
+        label_10->setObjectName(QString::fromUtf8("label_10"));
+
+        horizontalLayout_6->addWidget(label_10);
+
+        label_7 = new QLabel(tab_4);
+        label_7->setObjectName(QString::fromUtf8("label_7"));
+
+        horizontalLayout_6->addWidget(label_7);
+
+        max_size = new QSpinBox(tab_4);
+        max_size->setObjectName(QString::fromUtf8("max_size"));
+        max_size->setMaximum(1000);
+        max_size->setSingleStep(5);
+        max_size->setValue(100);
+
+        horizontalLayout_6->addWidget(max_size);
+
+        label_9 = new QLabel(tab_4);
+        label_9->setObjectName(QString::fromUtf8("label_9"));
+
+        horizontalLayout_6->addWidget(label_9);
+
+        horizontalSpacer_4 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_6->addItem(horizontalSpacer_4);
+
+
+        verticalLayout_8->addLayout(horizontalLayout_6);
 
         horizontalLayout_4 = new QHBoxLayout();
         horizontalLayout_4->setSpacing(6);
@@ -321,18 +434,14 @@ public:
         open_reco_result = new QToolButton(tab_5);
         open_reco_result->setObjectName(QString::fromUtf8("open_reco_result"));
         open_reco_result->setMaximumSize(QSize(23, 22));
-        QIcon icon;
-        icon.addFile(QString::fromUtf8(":/icons/icons/open.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        open_reco_result->setIcon(icon);
+        open_reco_result->setIcon(icon1);
 
         horizontalLayout_5->addWidget(open_reco_result);
 
         save_reco_result = new QPushButton(tab_5);
         save_reco_result->setObjectName(QString::fromUtf8("save_reco_result"));
         save_reco_result->setMaximumSize(QSize(23, 22));
-        QIcon icon1;
-        icon1.addFile(QString::fromUtf8(":/icons/icons/save.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        save_reco_result->setIcon(icon1);
+        save_reco_result->setIcon(icon2);
 
         horizontalLayout_5->addWidget(save_reco_result);
 
@@ -412,7 +521,7 @@ public:
         retranslateUi(MainWindow);
 
         tabWidget->setCurrentIndex(0);
-        tabWidget_2->setCurrentIndex(1);
+        tabWidget_2->setCurrentIndex(0);
 
 
         QMetaObject::connectSlotsByName(MainWindow);
@@ -422,6 +531,7 @@ public:
     {
         MainWindow->setWindowTitle(QString());
         action_Open->setText(QApplication::translate("MainWindow", "&Open", 0, QApplication::UnicodeUTF8));
+        show_recog->setText(QApplication::translate("MainWindow", "Show recognition", 0, QApplication::UnicodeUTF8));
         menu_File->setTitle(QApplication::translate("MainWindow", "&File", 0, QApplication::UnicodeUTF8));
         menuRecent_Files->setTitle(QApplication::translate("MainWindow", "Recent Files", 0, QApplication::UnicodeUTF8));
         menuView->setTitle(QApplication::translate("MainWindow", "View", 0, QApplication::UnicodeUTF8));
@@ -435,14 +545,17 @@ public:
         ___qtablewidgetitem1->setText(QApplication::translate("MainWindow", "Value", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab_3), QApplication::translate("MainWindow", "Page", 0, QApplication::UnicodeUTF8));
         dockWidget_2->setWindowTitle(QApplication::translate("MainWindow", "Color Recognition", 0, QApplication::UnicodeUTF8));
-        open_training_image->setText(QApplication::translate("MainWindow", "Open...", 0, QApplication::UnicodeUTF8));
-        stain_type->clear();
-        stain_type->insertItems(0, QStringList()
-         << QApplication::translate("MainWindow", "as foreground", 0, QApplication::UnicodeUTF8)
-         << QApplication::translate("MainWindow", "as background", 0, QApplication::UnicodeUTF8)
-        );
-        clear_learning->setText(QApplication::translate("MainWindow", "Clear", 0, QApplication::UnicodeUTF8));
+        new_model->setText(QApplication::translate("MainWindow", "...", 0, QApplication::UnicodeUTF8));
+        open_model->setText(QApplication::translate("MainWindow", "...", 0, QApplication::UnicodeUTF8));
+        save_model->setText(QApplication::translate("MainWindow", "...", 0, QApplication::UnicodeUTF8));
         recognize_stains->setText(QApplication::translate("MainWindow", "Recognize Stains", 0, QApplication::UnicodeUTF8));
+        label_11->setText(QApplication::translate("MainWindow", "Smoothing:", 0, QApplication::UnicodeUTF8));
+        label_12->setText(QApplication::translate("MainWindow", "iteration(s)", 0, QApplication::UnicodeUTF8));
+        label_6->setText(QApplication::translate("MainWindow", "Min Size:", 0, QApplication::UnicodeUTF8));
+        label_8->setText(QApplication::translate("MainWindow", "micron(s)", 0, QApplication::UnicodeUTF8));
+        label_10->setText(QString());
+        label_7->setText(QApplication::translate("MainWindow", "Max Size", 0, QApplication::UnicodeUTF8));
+        label_9->setText(QApplication::translate("MainWindow", "microns(s)", 0, QApplication::UnicodeUTF8));
         run->setText(QApplication::translate("MainWindow", "Run", 0, QApplication::UnicodeUTF8));
         label->setText(QApplication::translate("MainWindow", "Thread Count", 0, QApplication::UnicodeUTF8));
         tabWidget_2->setTabText(tabWidget_2->indexOf(tab_4), QApplication::translate("MainWindow", "Tab 1", 0, QApplication::UnicodeUTF8));

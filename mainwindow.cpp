@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->info_widget->setColumnWidth(0,200);
     ui->info_widget->setColumnWidth(1,200);
 
+    main_scene.train_scene = &train_scene;
     for (int i = 0; i < MaxRecentFiles; ++i)
     {
         recentFileActs[i] = new QAction(this);
@@ -105,6 +106,7 @@ void MainWindow::openFile(QString filename)
         ui->info_widget->setItem(index, 1, new QTableWidgetItem(w->property_value[index].c_str()));
     }
 
+    main_scene.pixel_size = w->pixel_size;
 
     work_path = QFileInfo(filename).absolutePath();
     file_name = filename;
@@ -131,38 +133,26 @@ void MainWindow::on_action_Open_triggered()
     openFile(filename);
 }
 
-void MainWindow::on_open_training_image_clicked()
+void MainWindow::set_training_param()
 {
-    QString filename = QFileDialog::getOpenFileName(
-                           this,
-                           "Open training image",work_path,"image files (*.bmp *.png *.tif);;All files (*)");
-    if (filename.isEmpty())
+    if(train_scene.ml.is_empty() || !w.get())
         return;
-    QImage I;
-    if(!I.load(filename))
-    {
-        QMessageBox::information(this,"Error","Invalid image format",0);
-        return;
-    }
-    QImage colorI = I.convertToFormat(QImage::Format_ARGB32);
-    image::color_image data(image::geometry<2>(colorI.width(),colorI.height()));
-    std::copy((const image::rgb_color*)colorI.bits(),
-              (const image::rgb_color*)colorI.bits()+data.size(),data.begin());
-    train_scene.ml.add_data(data,ui->stain_type->currentIndex());
-    train_scene.update();
-}
-void MainWindow::on_clear_learning_clicked()
-{
-    train_scene.ml.clear();
-    train_scene.update();
+    train_scene.ml.smoothing = ui->smoothing->value();
+    train_scene.ml.max_size = ui->max_size->value();
+    train_scene.ml.min_size = ui->min_size->value();
 }
 
 void MainWindow::on_recognize_stains_clicked()
 {
     if(train_scene.ml.is_empty() || !w.get() || main_scene.main_image.empty())
         return;
+    set_training_param();
     train_scene.ml.recognize(main_scene.main_image,main_scene.result);
-    image::morphology::edge(main_scene.result);
+    main_scene.result_pos.clear();
+    main_scene.result_features.clear();
+    train_scene.ml.cca(main_scene.result,w->pixel_size,0,main_scene.result_pos,main_scene.result_features);
+    ui->show_recog->setChecked(true);
+    //image::morphology::edge(main_scene.result);
     main_scene.update_image();
 }
 
@@ -170,6 +160,7 @@ void MainWindow::on_run_clicked()
 {
     if(!w.get())
         return;
+    set_training_param();
     if(thread.get())
     {
         disconnect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
@@ -180,10 +171,8 @@ void MainWindow::on_run_clicked()
         thread.reset(0);
         return;
     }
-    unsigned int featue_type = 1; // size
     terminated = false;
-    thread.reset(new boost::thread(&wsi::run,w.get(),800,100,
-                ui->thread_count->value(),featue_type,&train_scene.ml,&terminated));
+    thread.reset(new boost::thread(&wsi::run,w.get(),800,100,ui->thread_count->value(),&train_scene.ml,&terminated));
     timer.reset(new QTimer(this));
     connect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
     timer->start(1000);
@@ -330,4 +319,43 @@ void MainWindow::on_update_image_clicked()
 }
 
 
+void MainWindow::on_new_model_clicked()
+{
+    train_scene.ml.clear();
+    train_scene.update();
+}
+
+void MainWindow::on_open_model_clicked()
+{
+    if(!w.get())
+        return;
+    QString filename = QFileDialog::getOpenFileName(
+                           this,
+                           "Open image",file_name + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
+    if (filename.isEmpty())
+        return;
+    train_scene.ml.load_from_file(filename.toLocal8Bit().begin());
+    ui->smoothing->setValue(train_scene.ml.smoothing);
+    ui->min_size->setValue(train_scene.ml.min_size);
+    ui->max_size->setValue(train_scene.ml.max_size);
+
+}
+
+void MainWindow::on_save_model_clicked()
+{
+    if(!w.get())
+        return;
+    QString filename = QFileDialog::getSaveFileName(
+                           this,
+                           "Save image",file_name + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
+    if (filename.isEmpty())
+        return;
+    train_scene.ml.save_to_file(filename.toLocal8Bit().begin());
+}
+
+void MainWindow::on_show_recog_toggled(bool checked)
+{
+    main_scene.show_recog = checked;
+    main_scene.update_image();
+}
 

@@ -23,7 +23,26 @@ SOURCES += main.cpp\
     train_model.cpp \
     qtrainscene.cpp \
     qmainscene.cpp \
-    rec.cpp
+    rec.cpp \
+    gzlib/zutil.c \
+    gzlib/uncompr.c \
+    gzlib/trees.c \
+    gzlib/inftrees.c \
+    gzlib/inflate.c \
+    gzlib/inffast.c \
+    gzlib/infback.c \
+    gzlib/gzwrite.c \
+    gzlib/gzread.c \
+    gzlib/gzlib.c \
+    gzlib/gzclose.c \
+    gzlib/deflate.c \
+    gzlib/crc32.c \
+    gzlib/compress.c \
+    gzlib/adler32.c \
+    libs/prog_interface.cpp \
+    gen.cpp \
+    rec_dialog.cpp \
+    ../../../include/image/ml/svm.cpp
 
 HEADERS  += mainwindow.h \
     openslide-features.h \
@@ -32,9 +51,11 @@ HEADERS  += mainwindow.h \
     qmapgraphicsscene.h \
     train_model.hpp \
     qtrainscene.h \
-    qmainscene.h
+    qmainscene.h \
+    rec_dialog.hpp
 RESOURCES += \
     icons.qrc
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    rec_dialog.ui
 
 OTHER_FILES +=

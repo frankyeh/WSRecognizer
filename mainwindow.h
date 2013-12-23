@@ -48,7 +48,6 @@ public:
 private slots:
     void on_action_Open_triggered();
 
-    void on_open_training_image_clicked();
 
     void on_recognize_stains_clicked();
 
@@ -68,9 +67,17 @@ private slots:
 
     void on_update_image_clicked();
 
-    void on_clear_learning_clicked();
+    void on_new_model_clicked();
 
-private:
+    void on_open_model_clicked();
+
+    void on_save_model_clicked();
+
+    void on_show_recog_toggled(bool checked);
+
+    void set_training_param();
+
+public:
     Ui::MainWindow *ui;
 };
 

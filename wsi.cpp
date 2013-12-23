@@ -53,7 +53,7 @@ bool wsi::open(const char* file_name)
         I.resize(dim_at_level[level]);
         openslide_read_region(handle,(uint32_t*)&*I.begin(),0,0,level,I.width(),I.height());
         map_image.resize(image::geometry<2>(dim_at_level[0][0]/zoom_ratio,dim_at_level[0][1]/zoom_ratio));
-        image::resample(I,map_image);
+        image::scale(I,map_image);
     }
     {
         map_mask.resize(map_image.geometry());
@@ -119,7 +119,7 @@ void wsi::read(image::color_image& main_image,unsigned int x,unsigned int y)
     openslide_read_region(handle,(uint32_t*)&*main_image.begin(),x,y,0,main_image.width(),main_image.height());
 }
 void wsi::run_block(unsigned char* running,unsigned int x,unsigned int y,unsigned int block_size,unsigned int extra_size,
-                    unsigned int feature_type,train_model* model,bool* terminated)
+                    train_model* model,bool* terminated)
 {
     unsigned int image_size = block_size + extra_size + extra_size;
     image::color_image I(image::geometry<2>(image_size,image_size));
@@ -130,7 +130,7 @@ void wsi::run_block(unsigned char* running,unsigned int x,unsigned int y,unsigne
         return;
     std::vector<image::vector<2> > pos;
     std::vector<float> features;
-    model->cca(result,extra_size,feature_type,pos,features);
+    model->cca(result,pixel_size,extra_size,pos,features);
     image::add_constant(pos,image::vector<2>(x,y));
     {
         boost::mutex::scoped_lock lock(read_image_mutex);
@@ -150,7 +150,7 @@ void wsi::run_block(unsigned char* running,unsigned int x,unsigned int y,unsigne
 }
 
 void wsi::run(unsigned int block_size,unsigned int extra_size,
-              unsigned int thread_count,unsigned int feature_type,train_model* model,bool* terminated)
+              unsigned int thread_count,train_model* model,bool* terminated)
 {
     if(thread_count < 1)
         thread_count = 1;
@@ -184,7 +184,7 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,
                     delete threads[index];
                     thread_running[index] = 1;
                     threads[index] = new boost::thread(&wsi::run_block,this,
-                        &thread_running[index],x,y,block_size,extra_size,feature_type,model,terminated);
+                        &thread_running[index],x,y,block_size,extra_size,model,terminated);
                     found = true;
                     break;
                 }
