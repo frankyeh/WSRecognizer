@@ -77,6 +77,10 @@ private slots:
 
     void set_training_param();
 
+    void on_actionBatch_analysis_triggered();
+
+    void on_actionBatch_generate_images_triggered();
+
 public:
     Ui::MainWindow *ui;
 };

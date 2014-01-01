@@ -83,6 +83,9 @@
     <addaction name="action_Open"/>
     <addaction name="separator"/>
     <addaction name="menuRecent_Files"/>
+    <addaction name="separator"/>
+    <addaction name="actionBatch_analysis"/>
+    <addaction name="actionBatch_generate_images"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -205,7 +208,7 @@
      <item>
       <widget class="QTabWidget" name="tabWidget_2">
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tab_4">
         <attribute name="title">
@@ -607,6 +610,16 @@
   <action name="action_Open">
    <property name="text">
     <string>&amp;Open</string>
+   </property>
+  </action>
+  <action name="actionBatch_analysis">
+   <property name="text">
+    <string>Batch analysis...</string>
+   </property>
+  </action>
+  <action name="actionBatch_generate_images">
+   <property name="text">
+    <string>Batch generate images...</string>
    </property>
   </action>
  </widget>

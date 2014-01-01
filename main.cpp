@@ -7,6 +7,7 @@
 #include "openslide.h"
 
 namespace po = boost::program_options;
+
 int rec(int ac, char *av[]);
 int gen(int ac, char *av[]);
 

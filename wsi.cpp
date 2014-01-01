@@ -152,6 +152,7 @@ void wsi::run_block(unsigned char* running,unsigned int x,unsigned int y,unsigne
 void wsi::run(unsigned int block_size,unsigned int extra_size,
               unsigned int thread_count,train_model* model,bool* terminated)
 {
+    finished = false;
     if(thread_count < 1)
         thread_count = 1;
 
@@ -199,8 +200,8 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,
             }
         }
     }
-    if(terminated)
-        *terminated = true;
+    finished = true;
+
 }
 
 void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,float resolution_mm,float band_width_mm,bool feature)

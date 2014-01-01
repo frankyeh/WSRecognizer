@@ -42,7 +42,8 @@ SOURCES += main.cpp\
     libs/prog_interface.cpp \
     gen.cpp \
     rec_dialog.cpp \
-    ../../../include/image/ml/svm.cpp
+    ../../../include/image/ml/svm.cpp \
+    gen_dialog.cpp
 
 HEADERS  += mainwindow.h \
     openslide-features.h \
@@ -52,10 +53,12 @@ HEADERS  += mainwindow.h \
     train_model.hpp \
     qtrainscene.h \
     qmainscene.h \
-    rec_dialog.hpp
+    rec_dialog.hpp \
+    gen_dialog.hpp
 RESOURCES += \
     icons.qrc
 FORMS    += mainwindow.ui \
-    rec_dialog.ui
+    rec_dialog.ui \
+    gen_dialog.ui
 
 OTHER_FILES +=

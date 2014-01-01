@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Mon Dec 23 00:14:30 2013
+** Created: Wed Jan 1 09:59:56 2014
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -42,6 +42,8 @@ class Ui_MainWindow
 {
 public:
     QAction *action_Open;
+    QAction *actionBatch_analysis;
+    QAction *actionBatch_generate_images;
     QWidget *centralWidget;
     QVBoxLayout *verticalLayout_2;
     QWidget *widget;
@@ -126,6 +128,10 @@ public:
         MainWindow->resize(752, 470);
         action_Open = new QAction(MainWindow);
         action_Open->setObjectName(QString::fromUtf8("action_Open"));
+        actionBatch_analysis = new QAction(MainWindow);
+        actionBatch_analysis->setObjectName(QString::fromUtf8("actionBatch_analysis"));
+        actionBatch_generate_images = new QAction(MainWindow);
+        actionBatch_generate_images->setObjectName(QString::fromUtf8("actionBatch_generate_images"));
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         verticalLayout_2 = new QVBoxLayout(centralWidget);
@@ -517,11 +523,14 @@ public:
         menu_File->addAction(action_Open);
         menu_File->addSeparator();
         menu_File->addAction(menuRecent_Files->menuAction());
+        menu_File->addSeparator();
+        menu_File->addAction(actionBatch_analysis);
+        menu_File->addAction(actionBatch_generate_images);
 
         retranslateUi(MainWindow);
 
         tabWidget->setCurrentIndex(0);
-        tabWidget_2->setCurrentIndex(0);
+        tabWidget_2->setCurrentIndex(1);
 
 
         QMetaObject::connectSlotsByName(MainWindow);
@@ -531,6 +540,8 @@ public:
     {
         MainWindow->setWindowTitle(QString());
         action_Open->setText(QApplication::translate("MainWindow", "&Open", 0, QApplication::UnicodeUTF8));
+        actionBatch_analysis->setText(QApplication::translate("MainWindow", "Batch analysis...", 0, QApplication::UnicodeUTF8));
+        actionBatch_generate_images->setText(QApplication::translate("MainWindow", "Batch generate images...", 0, QApplication::UnicodeUTF8));
         show_recog->setText(QApplication::translate("MainWindow", "Show recognition", 0, QApplication::UnicodeUTF8));
         menu_File->setTitle(QApplication::translate("MainWindow", "&File", 0, QApplication::UnicodeUTF8));
         menuRecent_Files->setTitle(QApplication::translate("MainWindow", "Recent Files", 0, QApplication::UnicodeUTF8));

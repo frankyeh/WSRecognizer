@@ -3,10 +3,13 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QGraphicsTextItem>
+#include <QProgressDialog>
 #include <QAction>
 #include "wsi.hpp"
+#include "rec_dialog.hpp"
+#include "gen_dialog.hpp"
 
-
+extern std::auto_ptr<QProgressDialog> progressDialog;
 extern image::color_image bar,colormap;
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -36,7 +39,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QObject::connect(ui->color_min,SIGNAL(valueChanged(double)),this,SLOT(update_color_bar()));
     QObject::connect(ui->color_max,SIGNAL(valueChanged(double)),this,SLOT(update_color_bar()));
-    updateRecentList(settings.value("recent_files").toStringList());
+    QStringList recent_file_list = settings.value("recent_files").toStringList();
+    updateRecentList(recent_file_list);
+    if(!recent_file_list.isEmpty())
+        work_path = QFileInfo(recent_file_list[0]).absolutePath();
+
+    progressDialog.reset(new QProgressDialog);
 }
 
 MainWindow::~MainWindow()
@@ -186,7 +194,7 @@ void MainWindow::on_run_clicked()
 void MainWindow::show_run_progress(void)
 {
     ui->progressBar->setValue(w->progress);
-    if(terminated && thread.get())
+    if(thread.get() && w->finished)
     {
         on_run_clicked();
         update_sdi();
@@ -195,7 +203,7 @@ void MainWindow::show_run_progress(void)
 }
 void MainWindow::update_sdi(void)
 {
-    w->get_distribution_image(sdi_value,ui->resolution->value(),ui->resolution->value(),true);
+    w->get_distribution_image(sdi_value,ui->resolution->value(),ui->resolution->value(),false);
 }
 
 void MainWindow::update_color_bar(void)
@@ -327,14 +335,16 @@ void MainWindow::on_new_model_clicked()
 
 void MainWindow::on_open_model_clicked()
 {
-    if(!w.get())
-        return;
     QString filename = QFileDialog::getOpenFileName(
                            this,
                            "Open image",file_name + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
     if (filename.isEmpty())
         return;
-    train_scene.ml.load_from_file(filename.toLocal8Bit().begin());
+    if(!train_scene.ml.load_from_file(filename.toLocal8Bit().begin()))
+    {
+        QMessageBox::information(this,"Error","Invalid file format",0);
+        return;
+    }
     ui->smoothing->setValue(train_scene.ml.smoothing);
     ui->min_size->setValue(train_scene.ml.min_size);
     ui->max_size->setValue(train_scene.ml.max_size);
@@ -359,3 +369,13 @@ void MainWindow::on_show_recog_toggled(bool checked)
     main_scene.update_image();
 }
 
+
+void MainWindow::on_actionBatch_analysis_triggered()
+{
+    (new rec_dialog(this,work_path))->show();
+}
+
+void MainWindow::on_actionBatch_generate_images_triggered()
+{
+    (new gen_dialog(this,work_path))->show();
+}

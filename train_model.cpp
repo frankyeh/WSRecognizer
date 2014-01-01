@@ -150,7 +150,7 @@ void train_model::update_classifier_map(void)
 bool train_model::load_from_file(const char* file_name)
 {
     gz_mat_read mat;
-    if(mat.load_from_file(file_name))
+    if(!mat.load_from_file(file_name))
         return false;
     unsigned int row,col;
     const unsigned int* color = 0;
@@ -161,15 +161,15 @@ bool train_model::load_from_file(const char* file_name)
     image::ml::training_data<double,unsigned char> new_data;
     new_data.features.resize(col);
     new_data.classification.resize(col);
-    for(unsigned int index = 0;index < data.features.size();++index)
+    for(unsigned int index = 0;index < new_data.features.size();++index)
     {
         image::rgb_color cur_color;
         cur_color.color = color[index];
-        data.features[index].resize(3);
-        data.features[index][0] = cur_color.r;
-        data.features[index][1] = cur_color.g;
-        data.features[index][2] = cur_color.b;
-        data.classification[index] = label[index];
+        new_data.features[index].resize(3);
+        new_data.features[index][0] = ((double)cur_color.r)/255.0;
+        new_data.features[index][1] = ((double)cur_color.g)/255.0;
+        new_data.features[index][2] = ((double)cur_color.b)/255.0;
+        new_data.classification[index] = label[index];
     }
     const unsigned int* param = 0;
     if(!mat.read("param",row,col,param))
@@ -194,7 +194,9 @@ void train_model::save_to_file(const char* file_name)
     std::vector<unsigned char> label(data.classification.size());
     for(unsigned int index = 0;index < color.size();++index)
     {
-        color[index] = image::rgb_color(data.features[index][0],data.features[index][1],data.features[index][2]);
+        color[index] = image::rgb_color(data.features[index][0]*255.0,
+                                        data.features[index][1]*255.0,
+                                        data.features[index][2]*255.0);
         label[index] = data.classification[index];
     }
     std::vector<unsigned int> param(10);

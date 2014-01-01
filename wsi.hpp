@@ -38,6 +38,7 @@ public:
     std::vector<image::vector<2> > result_pos;
     std::vector<float> result_features;
     unsigned int progress;
+    bool finished;
     void run(unsigned int block_size,unsigned int extra_size,
              unsigned int thread_count,train_model* model,bool* terminated);
     void get_distribution_image(image::basic_image<float,2>& feature_mapping,float resolution_mm,float band_width_mm,bool feature);
