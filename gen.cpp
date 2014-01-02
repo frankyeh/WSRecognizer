@@ -35,63 +35,12 @@ int gen(int ac, char *av[])
     po::store(po::command_line_parser(ac, av).options(rec_desc).allow_unregistered().run(), vm);
     po::notify(vm);
 
-    gz_mat_read mat;
-    if(!mat.load_from_file(vm["source"].as<std::string>().c_str()))
+    wsi w;
+    if(!w.load_recognition_result(vm["source"].as<std::string>().c_str()))
     {
         std::cout << "Failed to open file " << vm["source"].as<std::string>().c_str() << std::endl;
         return -1;
     }
-    wsi w;
-
-
-    {
-        unsigned int rows,cols;
-        const int* dim = 0;
-        const float* x = 0;
-        const float* y = 0;
-        const float* pixel_size = 0;
-        const float* length = 0;
-        if(!mat.read("dimension",rows,cols,dim))
-        {
-            std::cout << "Cannot find dimension matrix in " << vm["source"].as<std::string>().c_str() << std::endl;
-            return -1;
-        }
-        std::cout << "dimension=" << dim[0] << " by " << dim[1] << std::endl;
-        if(!mat.read("pixel_size",rows,cols,pixel_size))
-        {
-            std::cout << "Cannot find pixel_size matrix in " << vm["source"].as<std::string>().c_str() << std::endl;
-            return -1;
-        }
-        std::cout << "pixel size=" << *pixel_size << std::endl;
-
-        if(!mat.read("x",rows,cols,x) ||
-           !mat.read("y",rows,cols,y))
-        {
-            std::cout << "Cannot find the location matrix in " << vm["source"].as<std::string>().c_str() << std::endl;
-            return -1;
-        }
-        std::cout << "A total of " << cols << " targets loaded." << std::endl;
-
-        std::cout << "Location matrix located" << std::endl;
-        if(mat.read("length",rows,cols,length))
-            std::cout << "Length matrix located" << std::endl;
-
-        w.dim[0] = dim[0];
-        w.dim[1] = dim[1];
-        w.pixel_size = *pixel_size;
-        w.result_pos.resize(cols);
-        w.result_features.resize(cols);
-
-        for(unsigned int index = 0;index < cols;++index)
-        {
-            w.result_pos[index][0] = x[index];
-            w.result_pos[index][1] = y[index];
-            if(length)
-                w.result_features[index] = length[index];
-        }
-    }
-
-
 
     std::cout << "generating sdi..." << std::endl;
 

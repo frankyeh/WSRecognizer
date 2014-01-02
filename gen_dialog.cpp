@@ -48,43 +48,11 @@ void gen_dialog::on_buttonBox_accepted()
     for(unsigned int index = 0;check_prog(index,file_list.size());++index)
     {
         wsi w;
-        gz_mat_read mat;
-        if(!mat.load_from_file(file_list[index].toLocal8Bit().begin()))
+        if(!w.load_recognition_result(file_list[index].toLocal8Bit().begin()))
         {
-            QMessageBox::information(this,"Error",QString("Failed to open file ") + file_list[index],0);
+            QMessageBox::information(this,"Error",file_list[index] + " is an invalid file",0);
             continue;
         }
-
-        {
-            unsigned int rows,cols,cols2;
-            const int* dim = 0;
-            const float* x = 0;
-            const float* y = 0;
-            const float* pixel_size = 0;
-            const float* length = 0;
-            if(!mat.read("dimension",rows,cols2,dim)||
-               !mat.read("pixel_size",rows,cols2,pixel_size) ||
-               !mat.read("x",rows,cols,x) ||
-               !mat.read("y",rows,cols,y))
-            {
-                QMessageBox::information(this,"Error",QString("Invalid file format") + file_list[index],0);
-                continue;
-            }
-            mat.read("length",rows,cols,length);
-            w.dim[0] = dim[0];
-            w.dim[1] = dim[1];
-            w.pixel_size = *pixel_size;
-            w.result_pos.resize(cols);
-            w.result_features.resize(cols);
-            for(unsigned int index = 0;index < cols;++index)
-            {
-                w.result_pos[index][0] = x[index];
-                w.result_pos[index][1] = y[index];
-                if(length)
-                    w.result_features[index] = length[index];
-            }
-        }
-
         image::basic_image<float,2> sdi_value;
         w.get_distribution_image(sdi_value,
                                  ui->resolution->value(),ui->resolution->value(),ui->type->currentIndex());
@@ -98,6 +66,15 @@ void gen_dialog::on_buttonBox_accepted()
                 int i = std::max<int>(0,std::min<int>(255,std::floor((sdi_value[index]-ui->value_min->value())*r)));
                 sdi_image[index] = colormap[i];
             }
+        }
+        if(ui->contour->isChecked() && !w.map_mask.empty())
+        {
+            image::grayscale_image contour,contour2(sdi_image.geometry());
+            image::morphology::edge(w.map_mask,contour);
+            image::scale(contour,contour2);
+            for(unsigned int index = 0;index < contour2.size();++index)
+                if(contour2[index])
+                    sdi_image[index] = 0;
         }
 
         if(ui->format->currentIndex() == 1)// mat

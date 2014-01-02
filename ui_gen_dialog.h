@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'gen_dialog.ui'
 **
-** Created: Wed Jan 1 09:59:56 2014
+** Created: Thu Jan 2 12:14:38 2014
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -14,6 +14,7 @@
 #include <QtGui/QAction>
 #include <QtGui/QApplication>
 #include <QtGui/QButtonGroup>
+#include <QtGui/QCheckBox>
 #include <QtGui/QComboBox>
 #include <QtGui/QDialog>
 #include <QtGui/QDialogButtonBox>
@@ -60,6 +61,7 @@ public:
     QLabel *label_4;
     QSpinBox *resolution;
     QLabel *label_7;
+    QCheckBox *contour;
     QDialogButtonBox *buttonBox;
 
     void setupUi(QDialog *gen_dialog)
@@ -209,6 +211,11 @@ public:
 
         verticalLayout_3->addWidget(tif_widget);
 
+        contour = new QCheckBox(groupBox_2);
+        contour->setObjectName(QString::fromUtf8("contour"));
+
+        verticalLayout_3->addWidget(contour);
+
 
         verticalLayout->addWidget(groupBox_2);
 
@@ -249,6 +256,7 @@ public:
         label_3->setText(QApplication::translate("gen_dialog", "min/max", 0, QApplication::UnicodeUTF8));
         label_4->setText(QApplication::translate("gen_dialog", "resolution", 0, QApplication::UnicodeUTF8));
         label_7->setText(QApplication::translate("gen_dialog", "microns", 0, QApplication::UnicodeUTF8));
+        contour->setText(QApplication::translate("gen_dialog", "Add contour", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 
 };

@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'rec_dialog.ui'
 **
-** Created: Wed Jan 1 09:59:56 2014
+** Created: Thu Jan 2 12:14:38 2014
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -47,6 +47,14 @@ public:
     QToolButton *remove_file;
     QToolButton *open_wsi_data;
     QListWidget *file_list;
+    QHBoxLayout *horizontalLayout_8;
+    QLabel *label_11;
+    QSpinBox *smoothing;
+    QSpacerItem *horizontalSpacer_6;
+    QLabel *label_7;
+    QSpinBox *min_size;
+    QSpinBox *max_size;
+    QLabel *label_14;
     QHBoxLayout *horizontalLayout_5;
     QSpacerItem *horizontalSpacer_5;
     QLabel *label_6;
@@ -136,6 +144,53 @@ public:
 
         verticalLayout->addLayout(horizontalLayout_7);
 
+        horizontalLayout_8 = new QHBoxLayout();
+        horizontalLayout_8->setObjectName(QString::fromUtf8("horizontalLayout_8"));
+        label_11 = new QLabel(rec_dialog);
+        label_11->setObjectName(QString::fromUtf8("label_11"));
+
+        horizontalLayout_8->addWidget(label_11);
+
+        smoothing = new QSpinBox(rec_dialog);
+        smoothing->setObjectName(QString::fromUtf8("smoothing"));
+        smoothing->setMaximum(10);
+        smoothing->setSingleStep(1);
+        smoothing->setValue(5);
+
+        horizontalLayout_8->addWidget(smoothing);
+
+        horizontalSpacer_6 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_8->addItem(horizontalSpacer_6);
+
+        label_7 = new QLabel(rec_dialog);
+        label_7->setObjectName(QString::fromUtf8("label_7"));
+
+        horizontalLayout_8->addWidget(label_7);
+
+        min_size = new QSpinBox(rec_dialog);
+        min_size->setObjectName(QString::fromUtf8("min_size"));
+        min_size->setMaximum(50);
+        min_size->setSingleStep(5);
+
+        horizontalLayout_8->addWidget(min_size);
+
+        max_size = new QSpinBox(rec_dialog);
+        max_size->setObjectName(QString::fromUtf8("max_size"));
+        max_size->setMaximum(1000);
+        max_size->setSingleStep(5);
+        max_size->setValue(100);
+
+        horizontalLayout_8->addWidget(max_size);
+
+        label_14 = new QLabel(rec_dialog);
+        label_14->setObjectName(QString::fromUtf8("label_14"));
+
+        horizontalLayout_8->addWidget(label_14);
+
+
+        verticalLayout->addLayout(horizontalLayout_8);
+
         horizontalLayout_5 = new QHBoxLayout();
         horizontalLayout_5->setObjectName(QString::fromUtf8("horizontalLayout_5"));
         horizontalSpacer_5 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -218,6 +273,9 @@ public:
         label_8->setText(QApplication::translate("rec_dialog", "WSI Files", 0, QApplication::UnicodeUTF8));
         remove_file->setText(QApplication::translate("rec_dialog", "...", 0, QApplication::UnicodeUTF8));
         open_wsi_data->setText(QString());
+        label_11->setText(QApplication::translate("rec_dialog", "Smoothing:", 0, QApplication::UnicodeUTF8));
+        label_7->setText(QApplication::translate("rec_dialog", "Size min/max", 0, QApplication::UnicodeUTF8));
+        label_14->setText(QApplication::translate("rec_dialog", "um", 0, QApplication::UnicodeUTF8));
         label_6->setText(QApplication::translate("rec_dialog", "Threads:", 0, QApplication::UnicodeUTF8));
         run->setText(QApplication::translate("rec_dialog", "Run", 0, QApplication::UnicodeUTF8));
         close->setText(QApplication::translate("rec_dialog", "Close", 0, QApplication::UnicodeUTF8));

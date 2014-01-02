@@ -41,7 +41,10 @@ public:
     bool finished;
     void run(unsigned int block_size,unsigned int extra_size,
              unsigned int thread_count,train_model* model,bool* terminated);
-    void get_distribution_image(image::basic_image<float,2>& feature_mapping,float resolution_mm,float band_width_mm,bool feature);
+    void save_recognition_result(const char* file_name);
+    bool load_recognition_result(const char* file_name);
+    void get_distribution_image(image::basic_image<float,2>& feature_mapping,
+                                float resolution_mm,float band_width_mm,bool feature);
 public:
     static bool can_open(const char* file_name);
 };

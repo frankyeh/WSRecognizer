@@ -57,6 +57,9 @@ void rec_dialog::on_open_model_file_clicked()
     }
     model_name = QFileInfo(filename).baseName();
     ui->classification_label->setText(QString("Classification Model: ")+model_name);
+    ui->smoothing->setValue(ml->smoothing);
+    ui->min_size->setValue(ml->min_size);
+    ui->max_size->setValue(ml->max_size);
 }
 
 void rec_dialog::add_log(QString text)
@@ -103,18 +106,7 @@ void rec_dialog::run_thread(train_model* ml_ptr)
         output_name += ".reg.gz";
         add_log(QString("Writing data to file ") + output_name.c_str());
 
-        gz_mat_write mat(output_name.c_str());
-        mat.write("dimension",&*w.dim.begin(),1,2);
-        mat.write("pixel_size",&w.pixel_size,1,1);
-        std::vector<float> pos_x(w.result_pos.size()),pos_y(w.result_pos.size());
-        for(unsigned int index = 0;index < w.result_pos.size();++index)
-        {
-            pos_x[index] = w.result_pos[index][0];
-            pos_y[index] = w.result_pos[index][1];
-        }
-        mat.write("x",&*pos_x.begin(),1,pos_x.size());
-        mat.write("y",&*pos_y.begin(),1,pos_x.size());
-        mat.write("length",&*w.result_features.begin(),1,w.result_features.size());
+        w.save_recognition_result(output_name.c_str());
     }
     terminated = true;
 }
@@ -158,6 +150,9 @@ void rec_dialog::on_run_clicked()
         QMessageBox::information(this,"Error","Please assign the WSI files",0);
         return;
     }
+    ml->smoothing = ui->smoothing->value();
+    ml->max_size = ui->max_size->value();
+    ml->min_size = ui->min_size->value();
     terminated = false;
     thread.reset(new boost::thread(&rec_dialog::run_thread,this,ml.release()));
     timer.reset(new QTimer(this));

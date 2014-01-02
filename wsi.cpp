@@ -1,6 +1,8 @@
 #include "wsi.hpp"
 #include "openslide.h"
 #include "train_model.hpp"
+#include "libs/gzip_interface.hpp"
+
 wsi::wsi():handle(0)
 {
 }
@@ -47,7 +49,7 @@ bool wsi::open(const char* file_name)
 
     // get map at 50 micron pixel size
     {
-        float zoom_ratio = 50.0/pixel_size;
+        float zoom_ratio = 20.0/pixel_size;
         unsigned int level = openslide_get_best_level_for_downsample(handle,zoom_ratio);
         image::color_image I;
         I.resize(dim_at_level[level]);
@@ -203,6 +205,61 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,
     finished = true;
 
 }
+void wsi::save_recognition_result(const char* file_name)
+{
+    gz_mat_write mat(file_name);
+    mat.write("dimension",&*dim.begin(),1,2);
+    mat.write("pixel_size",&pixel_size,1,1);
+    std::vector<float> pos_x(result_pos.size()),pos_y(result_pos.size());
+    for(unsigned int index = 0;index < result_pos.size();++index)
+    {
+        pos_x[index] = result_pos[index][0];
+        pos_y[index] = result_pos[index][1];
+    }
+    mat.write("x",&*pos_x.begin(),1,pos_x.size());
+    mat.write("y",&*pos_y.begin(),1,pos_x.size());
+    mat.write("length",&*result_features.begin(),1,result_features.size());
+    mat.write("mask",&*map_mask.begin(),map_mask.width(),map_mask.height());
+}
+
+bool wsi::load_recognition_result(const char* file_name)
+{
+    gz_mat_read mat;
+    if(!mat.load_from_file(file_name))
+        return false;
+    unsigned int rows,cols,cols2;
+    const int* dim_ptr = 0;
+    const float* x = 0;
+    const float* y = 0;
+    const float* pixel_size_ptr = 0;
+    const float* length = 0;
+    if(!mat.read("dimension",rows,cols2,dim_ptr)||
+       !mat.read("pixel_size",rows,cols2,pixel_size_ptr) ||
+       !mat.read("x",rows,cols,x) ||
+       !mat.read("y",rows,cols,y))
+        return false;
+    mat.read("length",rows,cols,length);
+    dim[0] = dim_ptr[0];
+    dim[1] = dim_ptr[1];
+    pixel_size = *pixel_size_ptr;
+    result_pos.resize(cols);
+    result_features.resize(cols);
+    for(unsigned int index = 0;index < cols;++index)
+    {
+        result_pos[index][0] = x[index];
+        result_pos[index][1] = y[index];
+        if(length)
+            result_features[index] = length[index];
+    }
+
+    const unsigned char* mask = 0;
+    if(mat.read("mask",rows,cols,mask))
+    {
+        map_mask.resize(image::geometry<2>(rows,cols));
+        std::copy(mask,mask+map_mask.size(),map_mask.begin());
+    }
+    return true;
+}
 
 void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,float resolution_mm,float band_width_mm,bool feature)
 {
@@ -257,3 +314,4 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,fl
         image::divide_constant(feature_mapping,h*std::sqrt(2.0*3.1415926)*resolution_mm*resolution_mm/100.0);
     }
 }
+

@@ -235,6 +235,13 @@
         </layout>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="contour">
+        <property name="text">
+         <string>Add contour</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
