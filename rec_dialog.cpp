@@ -48,16 +48,16 @@ void rec_dialog::on_open_model_file_clicked()
                            "Open image",workpath,"text files (*.mdl.gz);;All files (*)");
     if (filename.isEmpty())
         return;
-    ml.reset(new train_model);
-    if(!ml->load_from_file(filename.toLocal8Bit().begin()))
+    w.ml.clear();
+    if(!w.ml.load_from_file(filename.toLocal8Bit().begin()))
     {
         QMessageBox::information(this,"Error","Invalid file format",0);
-        ml.reset(0);
+        w.ml.clear();
         return;
     }
     model_name = QFileInfo(filename).baseName();
     ui->classification_label->setText(QString("Classification Model: ")+model_name);
-    ui->smoothing->setValue(ml->smoothing);
+    ui->smoothing->setValue(w.ml.smoothing);
 }
 
 void rec_dialog::add_log(QString text)
@@ -65,11 +65,9 @@ void rec_dialog::add_log(QString text)
     log.append(text);
 }
 
-void rec_dialog::run_thread(train_model* ml_ptr)
+void rec_dialog::run_thread(void)
 {
     log.clear();
-    std::auto_ptr<train_model> ml(ml_ptr);
-    ml->predict(0);
     for(file_progress = 0;file_progress < file_list.size() && !terminated;++file_progress)
     {
         {
@@ -88,7 +86,7 @@ void rec_dialog::run_thread(train_model* ml_ptr)
             add_log("spatial resolution:" + QString::number(w.pixel_size) + " micron");
         }
 
-        w.run(4000,200,ui->thread->value(),ml.get(),&terminated);
+        w.run(4000,200,ui->thread->value(),&terminated);
         add_log("recognition completed.");
         if(w.result_pos.empty())
         {
@@ -138,7 +136,7 @@ void rec_dialog::on_run_clicked()
         return;
     }
 
-    if(!ml.get())
+    if(!w.ml.is_trained())
     {
         QMessageBox::information(this,"Error","Please assign the classification model",0);
         return;
@@ -148,9 +146,9 @@ void rec_dialog::on_run_clicked()
         QMessageBox::information(this,"Error","Please assign the WSI files",0);
         return;
     }
-    ml->smoothing = ui->smoothing->value();
+    w.ml.smoothing = ui->smoothing->value();
     terminated = false;
-    thread.reset(new boost::thread(&rec_dialog::run_thread,this,ml.release()));
+    thread.reset(new boost::thread(&rec_dialog::run_thread,this));
     timer.reset(new QTimer(this));
     connect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
     timer->start(500);

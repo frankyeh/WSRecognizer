@@ -11,7 +11,7 @@ QTrainScene::QTrainScene(QObject *parent) :
 void QTrainScene::update(void)
 {
     clear();
-    if(ml.is_empty())
+    if(ml.classifier_map.empty())
         return;
     QImage qimage((unsigned char*)&*ml.classifier_map.begin(),ml.classifier_map.width(),ml.classifier_map.height(),QImage::Format_RGB32);
     {

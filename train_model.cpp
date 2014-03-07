@@ -24,6 +24,17 @@ train_model::train_model(void):solution_space(256*256*256)
     std::fill(r,r+9,0.0);
     r[0] = r[4] = r[8] = 1.0;
 }
+bool train_model::is_trained(void) const
+{
+    bool has_foreground = false;
+    bool has_background = false;
+    for(unsigned int index = 0;index < data.classification.size();++index)
+        if(data.classification[index])
+            has_foreground = true;
+        else
+            has_background = true;
+    return has_foreground && has_background;
+}
 unsigned char train_model::predict(image::rgb_color value)
 {
     if(!ml_model.get())

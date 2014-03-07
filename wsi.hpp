@@ -3,8 +3,9 @@
 #include <boost/thread.hpp>
 #include "image/image.hpp"
 #include <string>
+#include "train_model.hpp"
 typedef struct _openslide openslide_t;
-class train_model;
+
 class wsi
 {
 public:
@@ -32,15 +33,16 @@ public:
     void read(image::color_image& main_image,unsigned int x,unsigned int y);
 private:
     void run_block(unsigned char* running,unsigned int x,unsigned int y,unsigned int block_size,unsigned int extra_size,
-                   train_model* model,bool* terminated);
+                   bool* terminated);
 public:
     boost::mutex add_data_mutex;
+    train_model ml;
     std::vector<image::vector<2> > result_pos;
     std::vector<float> result_features;
     unsigned int progress;
     bool finished;
     void run(unsigned int block_size,unsigned int extra_size,
-             unsigned int thread_count,train_model* model,bool* terminated);
+             unsigned int thread_count,bool* terminated);
     void save_recognition_result(const char* file_name);
     bool load_recognition_result(const char* file_name);
     bool load_text_reco_result(const char* file_name);

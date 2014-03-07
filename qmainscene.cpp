@@ -18,6 +18,11 @@ void QMainScene::clear_image(void)
 void QMainScene::update_image(void)
 {
     QImage output_image;
+    if(main_image.empty())
+    {
+        clear();
+        return;
+    }
     if(!result.empty() && show_recog)
     {
         annotated_image = main_image;
@@ -54,6 +59,8 @@ void QMainScene::update_image(void)
 
 void QMainScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
+    if(main_image.empty())
+        return;
     float x = mouseEvent->scenePos().x();
     float y = mouseEvent->scenePos().y();
     std::vector<image::rgb_color> pixels;

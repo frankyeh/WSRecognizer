@@ -16,7 +16,6 @@ private:
     QString workpath,model_name;
     QStringList file_list;
 private: 
-    std::auto_ptr<train_model> ml;
     wsi w;
 private:
     unsigned int file_progress;
@@ -24,7 +23,7 @@ private:
     std::auto_ptr<QTimer> timer;
     bool terminated;
     QStringList log;
-    void run_thread(train_model* ml_ptr);
+    void run_thread(void);
 public:
     explicit rec_dialog(QWidget *parent,QString workpath_);
     ~rec_dialog();

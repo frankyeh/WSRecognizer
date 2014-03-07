@@ -34,8 +34,6 @@ int rec(int ac, char *av[])
     po::notify(vm);
 
     wsi w;
-    train_model ml;
-
     {
         std::cout << "Loading WSI" << std::endl;
         std::string wsi_file_name = vm["source"].as<std::string>();
@@ -67,7 +65,7 @@ int rec(int ac, char *av[])
         image::color_image data(image::geometry<2>(colorI.width(),colorI.height()));
         std::copy((const image::rgb_color*)colorI.bits(),
                   (const image::rgb_color*)colorI.bits()+data.size(),data.begin());
-        ml.add_data(data,true);
+        w.ml.add_data(data,true);
         std::cout << "background image loaded." << std::endl;
     }
 
@@ -83,15 +81,14 @@ int rec(int ac, char *av[])
         image::color_image data(image::geometry<2>(colorI.width(),colorI.height()));
         std::copy((const image::rgb_color*)colorI.bits(),
                   (const image::rgb_color*)colorI.bits()+data.size(),data.begin());
-        ml.add_data(data,false);
+        w.ml.add_data(data,false);
         std::cout << "foreground image loaded." << std::endl;
     }
 
     std::cout << "recognization using " << vm["thread_count"].as<int>() <<" thread(s)..." << std::endl;
 
     bool terminated = false;
-    ml.predict(0);
-    w.run(4000,200,vm["thread_count"].as<int>(),&ml,&terminated);
+    w.run(4000,200,vm["thread_count"].as<int>(),&terminated);
     std::cout << "recognition completed." << std::endl;
     if(w.result_pos.empty())
     {

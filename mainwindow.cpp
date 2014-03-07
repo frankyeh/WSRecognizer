@@ -117,7 +117,10 @@ void MainWindow::openFile(QString filename)
         ui->info_widget->setItem(index, 1, new QTableWidgetItem(w->property_value[index].c_str()));
     }
 
+    main_scene.main_image.clear();
     main_scene.pixel_size = w->pixel_size;
+    main_scene.update_image();
+
 
     work_path = QFileInfo(filename).absolutePath();
     file_name = filename;
@@ -154,14 +157,14 @@ void MainWindow::on_action_Open_triggered()
 
 void MainWindow::set_training_param()
 {
-    if(train_scene.ml.is_empty() || !w.get())
+    if(!train_scene.ml.is_trained() || !w.get())
         return;
     train_scene.ml.smoothing = ui->smoothing->value();
 }
 
 void MainWindow::on_recognize_stains_clicked()
 {
-    if(train_scene.ml.is_empty() || !w.get() || main_scene.main_image.empty())
+    if(!train_scene.ml.is_trained() || !w.get() || main_scene.main_image.empty())
         return;
     set_training_param();
     train_scene.ml.recognize(main_scene.main_image,main_scene.result);
@@ -188,7 +191,8 @@ void MainWindow::on_run_clicked()
         return;
     }
     terminated = false;
-    thread.reset(new boost::thread(&wsi::run,w.get(),4000,200,ui->thread_count->value(),&train_scene.ml,&terminated));
+    w->ml = train_scene.ml;
+    thread.reset(new boost::thread(&wsi::run,w.get(),4000,200,ui->thread_count->value(),&terminated));
     timer.reset(new QTimer(this));
     connect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
     timer->start(1500);

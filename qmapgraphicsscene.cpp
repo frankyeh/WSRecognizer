@@ -24,7 +24,7 @@ void QMapGraphicsScene::update(void)
 
 void QMapGraphicsScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
-    if(!w)
+    if(!w || w->map_image.empty())
         return;
     float x = mouseEvent->scenePos().x()/(sceneRect().width()-1);
     float y = mouseEvent->scenePos().y()/(sceneRect().height()-1);

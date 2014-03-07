@@ -121,18 +121,18 @@ void wsi::read(image::color_image& main_image,unsigned int x,unsigned int y)
     openslide_read_region(handle,(uint32_t*)&*main_image.begin(),x,y,0,main_image.width(),main_image.height());
 }
 void wsi::run_block(unsigned char* running,unsigned int x,unsigned int y,unsigned int block_size,unsigned int extra_size,
-                    train_model* model,bool* terminated)
+                    bool* terminated)
 {
     unsigned int image_size = block_size + extra_size + extra_size;
     image::color_image I(image::geometry<2>(image_size,image_size));
     read(I,x,y);
     image::grayscale_image result;
-    model->recognize(I,result,terminated);
+    ml.recognize(I,result,terminated);
     if(*terminated)
         return;
     std::vector<image::vector<2> > pos;
     std::vector<float> features;
-    model->cca(result,pixel_size,extra_size,pos,features);
+    ml.cca(result,pixel_size,extra_size,pos,features);
     image::add_constant(pos,image::vector<2>(x,y));
     {
         boost::mutex::scoped_lock lock(read_image_mutex);
@@ -151,14 +151,13 @@ void wsi::run_block(unsigned char* running,unsigned int x,unsigned int y,unsigne
         *running = 0;
 }
 
-void wsi::run(unsigned int block_size,unsigned int extra_size,
-              unsigned int thread_count,train_model* model,bool* terminated)
+void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int thread_count,bool* terminated)
 {
     finished = false;
     if(thread_count < 1)
         thread_count = 1;
 
-    model->predict(0);// ensure that the features are learned to prevent multithread conflict
+    ml.predict(0);// ensure that the features are learned to prevent multithread conflict
     result_pos.clear();
     result_features.clear();
 
@@ -174,12 +173,12 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,
             int map_x2 = std::min<int>((map_mask.width()-1)*(x+image_size)/(dim[0]-1),map_mask.width()-1);
             int map_y1 = std::min<int>((map_mask.height()-1)*(y)/(dim[1]-1),map_mask.height()-1);
             int map_y2 = std::min<int>((map_mask.height()-1)*(y+image_size)/(dim[1]-1),map_mask.height()-1);
-            if(!map_mask.at(map_x1,map_y1) &&
-                    !map_mask.at(map_x2,map_y1) &&
-                    !map_mask.at(map_x1,map_y2) &&
-                    !map_mask.at(map_x2,map_y2))
-                     continue;
-                 bool found = false;
+            image::grayscale_image block_mask;
+            image::crop(map_mask,block_mask,image::vector<2>(map_x1,map_y1),
+                                 image::vector<2>(map_x2,map_y2));
+            if(*std::max_element(block_mask.begin(),block_mask.end()) == 0)
+                continue;
+            bool found = false;
             do
              for(unsigned int index = 0;index < threads.size();++index)
                 if(!thread_running[index])
@@ -187,7 +186,7 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,
                     delete threads[index];
                     thread_running[index] = 1;
                     threads[index] = new boost::thread(&wsi::run_block,this,
-                        &thread_running[index],x,y,block_size,extra_size,model,terminated);
+                        &thread_running[index],x,y,block_size,extra_size,terminated);
                     found = true;
                     break;
                 }

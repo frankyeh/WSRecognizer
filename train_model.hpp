@@ -18,17 +18,29 @@ public://parameters
 private:
 public:
     train_model(void);
+    const train_model& operator=(const train_model& rhs)
+    {
+        clear();
+        solution_space = rhs.solution_space;
+        data = rhs.data;
+        classifier_map = rhs.classifier_map;
+        smoothing = rhs.smoothing;
+        std::copy(rhs.r,rhs.r+9,r);
+        return *this;
+    }
     void update_classifier_map(void);
+    bool is_trained(void) const;
     void clear(void);
     void add_data(const image::color_image& I,bool background);
     void add_data(image::rgb_color color,bool background);
-    bool is_empty(void) const{return data.features.empty();}
+
 public:
     unsigned char predict(image::rgb_color value);
     void recognize(const image::color_image& I,image::grayscale_image& result,bool* terminated = 0);
     void cca(const image::grayscale_image& result,float pixel_size,
              unsigned int border,std::vector<image::vector<2> >& pos,std::vector<float>& features);
     bool load_from_file(const char* file_name);
+
     void save_to_file(const char* file_name);
 public:
     static void get_position(const image::vector<3,double>& pos,
