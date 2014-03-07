@@ -47,9 +47,9 @@ bool wsi::open(const char* file_name)
         r_at_level[index] = openslide_get_level_downsample(handle,index);
     }
 
-    // get map at 50 micron pixel size
+    // get map at 40 micron pixel size
     {
-        float zoom_ratio = 20.0/pixel_size;
+        float zoom_ratio = 40.0/pixel_size;
         unsigned int level = openslide_get_best_level_for_downsample(handle,zoom_ratio);
         image::color_image I;
         I.resize(dim_at_level[level]);
@@ -261,8 +261,30 @@ bool wsi::load_recognition_result(const char* file_name)
     return true;
 }
 
-void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,float resolution_mm,float band_width_mm,bool feature)
+bool wsi::load_text_reco_result(const char* file_name)
 {
+    std::ifstream in(file_name);
+    if(!in)
+        return false;
+    result_pos.clear();
+    result_features.clear();
+    std::string line;
+    while(std::getline(in,line))
+    {
+        double x,y,v;
+        std::istringstream values(line);
+        values >> x >> y >> v;
+        result_pos.push_back(image::vector<2>(x,y));
+        result_features.push_back(v);
+    }
+    return true;
+}
+
+void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
+                                 float resolution_mm,float band_width_mm,bool feature,
+                                 float min_size,float max_size)
+{
+    boost::mutex::scoped_lock lock(read_image_mutex);
     image::geometry<2> output_geo;
     output_geo[0] = (float)dim[0]*pixel_size/resolution_mm;
     output_geo[1] = (float)dim[1]*pixel_size/resolution_mm;
@@ -288,8 +310,12 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,fl
                 float w = std::exp(-map_neighbor_pos.length2()/var2);
                 if(feature)
                 {
-                    feature_mapping[map_neighbors[j].index()] += w*result_features[index];
-                    accumulated_w[map_neighbors[j].index()] += w;
+                    if(result_features[index] >= min_size &&
+                       result_features[index] <= max_size)
+                    {
+                        feature_mapping[map_neighbors[j].index()] += w*result_features[index];
+                        accumulated_w[map_neighbors[j].index()] += w;
+                    }
                 }
                 else
                 {
@@ -300,18 +326,26 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,fl
 
     if(feature)
     {
-        for(unsigned int index = 0;index < accumulated_w.size();++index)
-            if(accumulated_w[index] < 1.0)
-            {
-                accumulated_w[index] = 1.0;
-                feature_mapping[index] = 0.0;
-            }
+        image::lower_threshold(accumulated_w,10.0);
         image::divide(feature_mapping,accumulated_w);
     }
     else
     {
         // output unit in counts per 100 mm ^2
         image::divide_constant(feature_mapping,h*std::sqrt(2.0*3.1415926)*resolution_mm*resolution_mm/100.0);
+    }
+}
+void wsi::add_contour(image::color_image& sdi_image)
+{
+    if(map_mask.empty())
+        return;
+    image::grayscale_image contour;
+    image::morphology::edge(map_mask,contour);
+    float ratio = (float)contour.width()/(float)sdi_image.width();
+    for(image::pixel_index<2> index;index.is_valid(contour.geometry());index.next(contour.geometry()))
+    {
+        if(contour[index.index()])
+            sdi_image.at(index.x()/ratio,index.y()/ratio) = 0;
     }
 }
 

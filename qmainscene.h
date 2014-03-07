@@ -17,6 +17,7 @@ public:
     QTrainScene* train_scene;
     explicit QMainScene(QObject *parent = 0);
 public:
+    bool show_edge;
     image::grayscale_image result;
     std::vector<image::vector<2> > result_pos;
     std::vector<float> result_features;
@@ -29,6 +30,7 @@ signals:
     
 public slots:
     void update_image(void);
+    void clear_image(void);
 private slots:
 };
 

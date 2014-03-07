@@ -24,7 +24,7 @@ void gen_dialog::on_open_file_clicked()
 {
     QStringList filenames = QFileDialog::getOpenFileNames(
                            this,
-                           "Open recognition result",workpath,"WSI files (*.reg.gz);;All files (*)");
+                           "Open recognition result",workpath,"WSI files (*.reg.gz);;WSI files (*.svs *.tif *.vms *.vmu *.scn *.mrxs *.ndpi);;All files (*)");
     if (filenames.isEmpty())
         return;
     for(unsigned int index = 0;index < filenames.size();++index)
@@ -44,10 +44,24 @@ void gen_dialog::on_clear_file_clicked()
 
 void gen_dialog::on_buttonBox_accepted()
 {
-    set_title("Generate images");
+    begin_prog("Generate images");
     for(unsigned int index = 0;check_prog(index,file_list.size());++index)
     {
         wsi w;
+        if(QFileInfo(file_list[index]).suffix() != "gz") // recognition file
+        {
+            if(!w.open(file_list[index].toLocal8Bit().begin()))
+            {
+                QMessageBox::information(this,"Error",file_list[index] + " is an invalid file",0);
+                continue;
+            }
+            if(!w.load_text_reco_result((file_list[index]+".txt").toLocal8Bit().begin()))
+            {
+                QMessageBox::information(this,"Error",file_list[index] + " has no recognition results",0);
+                continue;
+            }
+        }
+        else
         if(!w.load_recognition_result(file_list[index].toLocal8Bit().begin()))
         {
             QMessageBox::information(this,"Error",file_list[index] + " is an invalid file",0);
@@ -55,7 +69,8 @@ void gen_dialog::on_buttonBox_accepted()
         }
         image::basic_image<float,2> sdi_value;
         w.get_distribution_image(sdi_value,
-                                 ui->resolution->value(),ui->resolution->value(),ui->type->currentIndex());
+                                 ui->resolution->value(),ui->resolution->value(),
+                                 ui->type->currentIndex(),ui->min_size->value(),ui->max_size->value());
 
         image::color_image sdi_image(sdi_value.geometry());
 
@@ -67,15 +82,8 @@ void gen_dialog::on_buttonBox_accepted()
                 sdi_image[index] = colormap[i];
             }
         }
-        if(ui->contour->isChecked() && !w.map_mask.empty())
-        {
-            image::grayscale_image contour,contour2(sdi_image.geometry());
-            image::morphology::edge(w.map_mask,contour);
-            image::scale(contour,contour2);
-            for(unsigned int index = 0;index < contour2.size();++index)
-                if(contour2[index])
-                    sdi_image[index] = 0;
-        }
+        if(ui->contour->isChecked())
+            w.add_contour(sdi_image);
 
         if(ui->format->currentIndex() == 1)// mat
         {

@@ -25,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->result_view->setScene(&result_scene);
     ui->info_widget->setColumnWidth(0,200);
     ui->info_widget->setColumnWidth(1,200);
+    ui->splitter->setSizes(QList<int> () << height()*3/4 << height()/4);
 
     main_scene.train_scene = &train_scene;
     for (int i = 0; i < MaxRecentFiles; ++i)
@@ -37,6 +38,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
 
+    QObject::connect(ui->type,SIGNAL(currentIndexChanged(int)),this,SLOT(update_result()));
+    QObject::connect(ui->contour,SIGNAL(clicked()),this,SLOT(update_result()));
     QObject::connect(ui->color_min,SIGNAL(valueChanged(double)),this,SLOT(update_color_bar()));
     QObject::connect(ui->color_max,SIGNAL(valueChanged(double)),this,SLOT(update_color_bar()));
     QStringList recent_file_list = settings.value("recent_files").toStringList();
@@ -129,6 +132,14 @@ void MainWindow::openFile(QString filename)
     settings.setValue("recent_files", files);
     updateRecentList(files);
     setWindowTitle(filename);
+
+    QString resultfile = filename+".txt";
+    if(QFileInfo(resultfile).exists())
+    {
+        w->load_text_reco_result(resultfile.toLocal8Bit().begin());
+        update_sdi();
+        update_color_bar();
+    }
 }
 
 void MainWindow::on_action_Open_triggered()
@@ -146,8 +157,6 @@ void MainWindow::set_training_param()
     if(train_scene.ml.is_empty() || !w.get())
         return;
     train_scene.ml.smoothing = ui->smoothing->value();
-    train_scene.ml.max_size = ui->max_size->value();
-    train_scene.ml.min_size = ui->min_size->value();
 }
 
 void MainWindow::on_recognize_stains_clicked()
@@ -160,7 +169,6 @@ void MainWindow::on_recognize_stains_clicked()
     main_scene.result_features.clear();
     train_scene.ml.cca(main_scene.result,w->pixel_size,0,main_scene.result_pos,main_scene.result_features);
     ui->show_recog->setChecked(true);
-    //image::morphology::edge(main_scene.result);
     main_scene.update_image();
 }
 
@@ -180,10 +188,10 @@ void MainWindow::on_run_clicked()
         return;
     }
     terminated = false;
-    thread.reset(new boost::thread(&wsi::run,w.get(),800,100,ui->thread_count->value(),&train_scene.ml,&terminated));
+    thread.reset(new boost::thread(&wsi::run,w.get(),4000,200,ui->thread_count->value(),&train_scene.ml,&terminated));
     timer.reset(new QTimer(this));
     connect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
-    timer->start(1000);
+    timer->start(1500);
     ui->progressBar->setValue(0);
     ui->run->setText("Stop");
 }
@@ -195,15 +203,13 @@ void MainWindow::show_run_progress(void)
 {
     ui->progressBar->setValue(w->progress);
     if(thread.get() && w->finished)
-    {
         on_run_clicked();
-        update_sdi();
-        update_color_bar();
-    }
+    update_sdi();
+    update_color_bar();
 }
 void MainWindow::update_sdi(void)
 {
-    w->get_distribution_image(sdi_value,ui->resolution->value(),ui->resolution->value(),false);
+    w->get_distribution_image(sdi_value,ui->resolution->value(),ui->resolution->value(),ui->type->currentIndex(),ui->min_size->value(),ui->max_size->value());
 }
 
 void MainWindow::update_color_bar(void)
@@ -227,6 +233,8 @@ void MainWindow::update_color_bar(void)
                 sdi_image[index] = colormap[i];
             }
         }
+        if(ui->contour->isChecked())
+            w->add_contour(sdi_image);
         result_scene.addPixmap(QPixmap::fromImage(
                 QImage((unsigned char*)&*sdi_image.begin(),
                        sdi_image.width(),sdi_image.height(),QImage::Format_RGB32)))->moveBy(0,10);
@@ -281,14 +289,31 @@ void MainWindow::on_save_reco_result_clicked()
     if(!w.get() || w->result_pos.empty())
         return;
     QString filename = QFileDialog::getSaveFileName(
-                           this,"Save image",file_name + ".txt","text files (*.txt);;All files (*)");
+                           this,"Save results",file_name + ".tif","TIF file (*.tif);;MAT file (*.mat);;text files (*.txt);;All files (*)");
     if (filename.isEmpty())
         return;
-    std::ofstream out(filename.toLocal8Bit().begin());
-    for(unsigned int index = 0;index < w->result_pos.size();++index)
+    if(QFileInfo(filename).suffix() == "txt")
     {
-        out << w->result_pos[index][0] << " " << w->result_pos[index][1] << " "
-            << w->result_features[index] << std::endl;
+        std::ofstream out(filename.toLocal8Bit().begin());
+        for(unsigned int index = 0;index < w->result_pos.size();++index)
+        {
+            out << w->result_pos[index][0] << " " << w->result_pos[index][1] << " "
+                << w->result_features[index] << std::endl;
+        }
+        return;
+    }
+
+    if(QFileInfo(filename).suffix() == "mat")
+    {
+        image::io::mat_write mat(filename.toLocal8Bit().begin());
+        mat << sdi_value;
+        return;
+    }
+    if(QFileInfo(filename).suffix() == "tif")
+    {
+        QImage I((unsigned char*)&*sdi_image.begin(),sdi_image.width(),sdi_image.height(),QImage::Format_RGB32);
+        I.save(filename);
+        return;
     }
 
 }
@@ -302,23 +327,13 @@ void MainWindow::on_open_reco_result_clicked()
                            "Save image",file_name + ".txt","text files (*.txt);;All files (*)");
     if (filename.isEmpty())
         return;
-
-    std::ifstream in(filename.toLocal8Bit().begin());
-    std::string line;
-    while(std::getline(in,line))
-    {
-        double x,y,v;
-        std::istringstream values(line);
-        values >> x >> y >> v;
-        w->result_pos.push_back(image::vector<2>(x,y));
-        w->result_features.push_back(v);
-    }
+    w->load_text_reco_result(filename.toLocal8Bit().begin());
     update_sdi();
     update_color_bar();
 }
 
 
-void MainWindow::on_update_image_clicked()
+void MainWindow::update_result()
 {
     if(!w.get())
         return;
@@ -331,6 +346,7 @@ void MainWindow::on_new_model_clicked()
 {
     train_scene.ml.clear();
     train_scene.update();
+    main_scene.clear_image();
 }
 
 void MainWindow::on_open_model_clicked()
@@ -346,9 +362,6 @@ void MainWindow::on_open_model_clicked()
         return;
     }
     ui->smoothing->setValue(train_scene.ml.smoothing);
-    ui->min_size->setValue(train_scene.ml.min_size);
-    ui->max_size->setValue(train_scene.ml.max_size);
-
 }
 
 void MainWindow::on_save_model_clicked()
@@ -378,4 +391,22 @@ void MainWindow::on_actionBatch_analysis_triggered()
 void MainWindow::on_actionBatch_generate_images_triggered()
 {
     (new gen_dialog(this,work_path))->show();
+}
+
+void MainWindow::on_map_size_valueChanged(int value)
+{
+    map_scene.resolution = value;
+    map_scene.update();
+}
+
+void MainWindow::on_dilation_clicked()
+{
+    image::morphology::dilation(w->map_mask);
+    map_scene.update();
+}
+
+void MainWindow::on_erosion_clicked()
+{
+    image::morphology::erosion(w->map_mask);
+    map_scene.update();
 }

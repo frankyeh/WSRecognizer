@@ -92,9 +92,9 @@ void train_model::cca(const image::grayscale_image& result,
            center_of_mass[index][1] < border || center_of_mass[index][1] >= upper_border)
             continue;
         float feature_size = (max_pos[index][0]-min_pos[index][0]+(max_pos[index][1]-min_pos[index][1]))/2.0;
-        feature_size *= pixel_size; // now in micron
-        if(feature_size > max_size || feature_size < min_size)
+        if(border && feature_size > border)
             continue;
+        feature_size *= pixel_size; // now in micron
         pos.push_back(center_of_mass[index]);
         features.push_back(feature_size);
     }
@@ -178,8 +178,6 @@ bool train_model::load_from_file(const char* file_name)
     data.features.swap(new_data.features);
     data.classification.swap(new_data.classification);
     smoothing = param[0];
-    min_size = param[1];
-    max_size = param[2];
     update_classifier_map();
     return true;
 }
@@ -201,8 +199,6 @@ void train_model::save_to_file(const char* file_name)
     }
     std::vector<unsigned int> param(10);
     param[0] = smoothing;
-    param[1] = min_size;
-    param[2] = max_size;
     mat.write("color",&*color.begin(),1,color.size());
     mat.write("label",&*label.begin(),1,label.size());
     mat.write("param",&*param.begin(),1,param.size());

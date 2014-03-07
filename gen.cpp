@@ -22,6 +22,8 @@ int gen(int ac, char *av[])
     ("resolution", po::value<int>()->default_value(40), "assign the output resolution")
     ("min_value", po::value<float>()->default_value(0), "assign the min value")
     ("max_value", po::value<float>()->default_value(10), "assign the max value")
+    ("min_size", po::value<float>()->default_value(0), "assign the min value")
+    ("max_size", po::value<float>()->default_value(100), "assign the max value")
     ("image_type", po::value<std::string>()->default_value("tif"), "assign the output image type")
     ;
 
@@ -48,6 +50,8 @@ int gen(int ac, char *av[])
     int resolution = vm["resolution"].as<int>();
     float min_value = vm["min_value"].as<float>();
     float max_value = vm["max_value"].as<float>();
+    float min_size = vm["min_size"].as<float>();
+    float max_size = vm["max_size"].as<float>();
     std::string image_type = QString(vm["image_type"].as<std::string>().c_str()).toLower().toLocal8Bit().begin();
 
     std::cout << "type:" << type << std::endl;
@@ -57,7 +61,7 @@ int gen(int ac, char *av[])
 
 
     image::basic_image<float,2> sdi_value;
-    w.get_distribution_image(sdi_value,resolution,resolution,type);
+    w.get_distribution_image(sdi_value,resolution,resolution,type,min_size,max_size);
 
     std::cout << "image_dimension:" << sdi_value.width() << " by " << sdi_value.height() << std::endl;
     image::color_image sdi_image(sdi_value.geometry());

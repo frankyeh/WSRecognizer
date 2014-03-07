@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Thu Jan 2 12:14:38 2014
+** Created: Thu Mar 6 15:35:45 2014
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -15,9 +15,11 @@
 #include <QtGui/QApplication>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QCheckBox>
+#include <QtGui/QComboBox>
 #include <QtGui/QDockWidget>
 #include <QtGui/QDoubleSpinBox>
 #include <QtGui/QGraphicsView>
+#include <QtGui/QGroupBox>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QHeaderView>
 #include <QtGui/QLabel>
@@ -26,13 +28,14 @@
 #include <QtGui/QMenuBar>
 #include <QtGui/QProgressBar>
 #include <QtGui/QPushButton>
+#include <QtGui/QScrollArea>
+#include <QtGui/QSlider>
 #include <QtGui/QSpacerItem>
 #include <QtGui/QSpinBox>
+#include <QtGui/QSplitter>
 #include <QtGui/QStatusBar>
 #include <QtGui/QTabWidget>
 #include <QtGui/QTableWidget>
-#include <QtGui/QToolBar>
-#include <QtGui/QToolButton>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QWidget>
 
@@ -46,100 +49,145 @@ public:
     QAction *actionBatch_generate_images;
     QWidget *centralWidget;
     QVBoxLayout *verticalLayout_2;
+    QSplitter *splitter;
     QWidget *widget;
     QVBoxLayout *verticalLayout_7;
     QHBoxLayout *horizontalLayout_2;
     QCheckBox *show_recog;
+    QCheckBox *result_edge;
     QSpacerItem *horizontalSpacer_2;
     QGraphicsView *main_view;
-    QMenuBar *menuBar;
-    QMenu *menu_File;
-    QMenu *menuRecent_Files;
-    QMenu *menuView;
-    QToolBar *mainToolBar;
-    QStatusBar *statusBar;
-    QDockWidget *dockWidget;
-    QWidget *dockWidgetContents;
-    QVBoxLayout *verticalLayout;
     QTabWidget *tabWidget;
     QWidget *tab;
-    QVBoxLayout *verticalLayout_4;
-    QHBoxLayout *horizontalLayout_3;
-    QCheckBox *show_map_mask;
+    QHBoxLayout *horizontalLayout_14;
+    QSlider *map_size;
     QGraphicsView *graphicsView;
+    QVBoxLayout *verticalLayout;
+    QCheckBox *show_map_mask;
+    QPushButton *dilation;
+    QPushButton *erosion;
     QWidget *tab_2;
     QVBoxLayout *verticalLayout_5;
     QGraphicsView *info_view;
     QWidget *tab_3;
-    QVBoxLayout *verticalLayout_6;
+    QVBoxLayout *verticalLayout_4;
     QTableWidget *info_widget;
+    QMenuBar *menuBar;
+    QMenu *menu_File;
+    QMenu *menuRecent_Files;
+    QMenu *menuView;
+    QStatusBar *statusBar;
     QDockWidget *dockWidget_2;
     QWidget *dockWidgetContents_2;
     QVBoxLayout *verticalLayout_3;
     QTabWidget *tabWidget_2;
     QWidget *tab_4;
-    QVBoxLayout *verticalLayout_8;
+    QVBoxLayout *verticalLayout_9;
+    QGroupBox *groupBox;
     QHBoxLayout *horizontalLayout;
-    QToolButton *new_model;
-    QToolButton *open_model;
-    QToolButton *save_model;
-    QPushButton *recognize_stains;
-    QSpacerItem *horizontalSpacer;
     QGraphicsView *train_view;
-    QHBoxLayout *horizontalLayout_7;
-    QLabel *label_11;
-    QSpinBox *smoothing;
-    QLabel *label_12;
-    QSpacerItem *horizontalSpacer_5;
-    QHBoxLayout *horizontalLayout_6;
-    QLabel *label_6;
-    QSpinBox *min_size;
-    QLabel *label_8;
-    QLabel *label_10;
-    QLabel *label_7;
-    QSpinBox *max_size;
-    QLabel *label_9;
-    QSpacerItem *horizontalSpacer_4;
-    QHBoxLayout *horizontalLayout_4;
+    QVBoxLayout *verticalLayout_11;
+    QPushButton *save_model;
+    QPushButton *open_model;
+    QPushButton *new_model;
+    QSpacerItem *verticalSpacer_2;
+    QPushButton *recognize_stains;
+    QHBoxLayout *horizontalLayout_3;
     QProgressBar *progressBar;
     QPushButton *run;
-    QLabel *label;
-    QSpinBox *thread_count;
     QWidget *tab_5;
-    QVBoxLayout *verticalLayout_9;
-    QHBoxLayout *horizontalLayout_5;
-    QToolButton *open_reco_result;
-    QPushButton *save_reco_result;
-    QLabel *label_2;
-    QDoubleSpinBox *color_min;
-    QLabel *label_3;
-    QDoubleSpinBox *color_max;
+    QVBoxLayout *verticalLayout_8;
+    QScrollArea *scrollArea;
+    QWidget *scrollAreaWidgetContents;
+    QVBoxLayout *verticalLayout_6;
+    QGroupBox *groupBox_4;
+    QVBoxLayout *verticalLayout_10;
+    QHBoxLayout *horizontalLayout_7;
+    QLabel *label_11;
+    QSpacerItem *horizontalSpacer_5;
+    QSpinBox *smoothing;
+    QLabel *label_12;
+    QHBoxLayout *horizontalLayout_4;
+    QLabel *label_6;
+    QSpacerItem *horizontalSpacer;
+    QSpinBox *min_size;
+    QLabel *label_8;
+    QHBoxLayout *horizontalLayout_6;
+    QLabel *label_7;
+    QLabel *label_10;
+    QSpacerItem *horizontalSpacer_4;
+    QSpinBox *max_size;
+    QLabel *label_9;
+    QHBoxLayout *horizontalLayout_11;
+    QLabel *label;
+    QSpacerItem *horizontalSpacer_8;
+    QSpinBox *thread_count;
+    QGroupBox *groupBox_5;
+    QVBoxLayout *verticalLayout_12;
+    QHBoxLayout *horizontalLayout_10;
     QLabel *label_4;
+    QSpacerItem *horizontalSpacer_6;
     QSpinBox *resolution;
     QLabel *label_5;
-    QToolButton *update_image;
+    QDockWidget *dockWidget_3;
+    QWidget *dockWidgetContents_3;
+    QVBoxLayout *verticalLayout_13;
+    QHBoxLayout *horizontalLayout_8;
+    QPushButton *open_reco_result;
+    QPushButton *save_reco_result;
+    QCheckBox *contour;
+    QSpacerItem *horizontalSpacer_7;
+    QHBoxLayout *horizontalLayout_5;
+    QLabel *label_14;
+    QComboBox *type;
     QSpacerItem *horizontalSpacer_3;
     QGraphicsView *result_view;
+    QHBoxLayout *horizontalLayout_12;
+    QLabel *label_2;
+    QDoubleSpinBox *color_min;
+    QDoubleSpinBox *color_max;
+    QSpacerItem *horizontalSpacer_9;
 
     void setupUi(QMainWindow *MainWindow)
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
-        MainWindow->resize(752, 470);
+        MainWindow->resize(880, 530);
         action_Open = new QAction(MainWindow);
         action_Open->setObjectName(QString::fromUtf8("action_Open"));
+        QIcon icon;
+        icon.addFile(QString::fromUtf8(":/icons/icons/open.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        action_Open->setIcon(icon);
         actionBatch_analysis = new QAction(MainWindow);
         actionBatch_analysis->setObjectName(QString::fromUtf8("actionBatch_analysis"));
         actionBatch_generate_images = new QAction(MainWindow);
         actionBatch_generate_images->setObjectName(QString::fromUtf8("actionBatch_generate_images"));
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
+        QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        sizePolicy.setHorizontalStretch(0);
+        sizePolicy.setVerticalStretch(0);
+        sizePolicy.setHeightForWidth(centralWidget->sizePolicy().hasHeightForWidth());
+        centralWidget->setSizePolicy(sizePolicy);
         verticalLayout_2 = new QVBoxLayout(centralWidget);
-        verticalLayout_2->setSpacing(0);
-        verticalLayout_2->setContentsMargins(6, 6, 6, 6);
+        verticalLayout_2->setSpacing(6);
+        verticalLayout_2->setContentsMargins(11, 11, 11, 11);
         verticalLayout_2->setObjectName(QString::fromUtf8("verticalLayout_2"));
-        widget = new QWidget(centralWidget);
+        splitter = new QSplitter(centralWidget);
+        splitter->setObjectName(QString::fromUtf8("splitter"));
+        QSizePolicy sizePolicy1(QSizePolicy::Preferred, QSizePolicy::Expanding);
+        sizePolicy1.setHorizontalStretch(0);
+        sizePolicy1.setVerticalStretch(1);
+        sizePolicy1.setHeightForWidth(splitter->sizePolicy().hasHeightForWidth());
+        splitter->setSizePolicy(sizePolicy1);
+        splitter->setOrientation(Qt::Vertical);
+        widget = new QWidget(splitter);
         widget->setObjectName(QString::fromUtf8("widget"));
+        QSizePolicy sizePolicy2(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        sizePolicy2.setHorizontalStretch(0);
+        sizePolicy2.setVerticalStretch(0);
+        sizePolicy2.setHeightForWidth(widget->sizePolicy().hasHeightForWidth());
+        widget->setSizePolicy(sizePolicy2);
         verticalLayout_7 = new QVBoxLayout(widget);
         verticalLayout_7->setSpacing(0);
         verticalLayout_7->setContentsMargins(0, 0, 0, 0);
@@ -151,6 +199,11 @@ public:
         show_recog->setObjectName(QString::fromUtf8("show_recog"));
 
         horizontalLayout_2->addWidget(show_recog);
+
+        result_edge = new QCheckBox(widget);
+        result_edge->setObjectName(QString::fromUtf8("result_edge"));
+
+        horizontalLayout_2->addWidget(result_edge);
 
         horizontalSpacer_2 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -164,65 +217,68 @@ public:
 
         verticalLayout_7->addWidget(main_view);
 
-
-        verticalLayout_2->addWidget(widget);
-
-        MainWindow->setCentralWidget(centralWidget);
-        menuBar = new QMenuBar(MainWindow);
-        menuBar->setObjectName(QString::fromUtf8("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 752, 21));
-        menu_File = new QMenu(menuBar);
-        menu_File->setObjectName(QString::fromUtf8("menu_File"));
-        menuRecent_Files = new QMenu(menu_File);
-        menuRecent_Files->setObjectName(QString::fromUtf8("menuRecent_Files"));
-        menuView = new QMenu(menuBar);
-        menuView->setObjectName(QString::fromUtf8("menuView"));
-        MainWindow->setMenuBar(menuBar);
-        mainToolBar = new QToolBar(MainWindow);
-        mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
-        MainWindow->addToolBar(Qt::TopToolBarArea, mainToolBar);
-        statusBar = new QStatusBar(MainWindow);
-        statusBar->setObjectName(QString::fromUtf8("statusBar"));
-        MainWindow->setStatusBar(statusBar);
-        dockWidget = new QDockWidget(MainWindow);
-        dockWidget->setObjectName(QString::fromUtf8("dockWidget"));
-        dockWidgetContents = new QWidget();
-        dockWidgetContents->setObjectName(QString::fromUtf8("dockWidgetContents"));
-        verticalLayout = new QVBoxLayout(dockWidgetContents);
-        verticalLayout->setSpacing(0);
-        verticalLayout->setContentsMargins(0, 0, 0, 0);
-        verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
-        tabWidget = new QTabWidget(dockWidgetContents);
+        splitter->addWidget(widget);
+        tabWidget = new QTabWidget(splitter);
         tabWidget->setObjectName(QString::fromUtf8("tabWidget"));
+        sizePolicy.setHeightForWidth(tabWidget->sizePolicy().hasHeightForWidth());
+        tabWidget->setSizePolicy(sizePolicy);
         tab = new QWidget();
         tab->setObjectName(QString::fromUtf8("tab"));
-        verticalLayout_4 = new QVBoxLayout(tab);
-        verticalLayout_4->setSpacing(6);
-        verticalLayout_4->setContentsMargins(11, 11, 11, 11);
-        verticalLayout_4->setObjectName(QString::fromUtf8("verticalLayout_4"));
-        horizontalLayout_3 = new QHBoxLayout();
-        horizontalLayout_3->setSpacing(6);
-        horizontalLayout_3->setObjectName(QString::fromUtf8("horizontalLayout_3"));
-        show_map_mask = new QCheckBox(tab);
-        show_map_mask->setObjectName(QString::fromUtf8("show_map_mask"));
-        show_map_mask->setChecked(true);
+        horizontalLayout_14 = new QHBoxLayout(tab);
+        horizontalLayout_14->setSpacing(0);
+        horizontalLayout_14->setContentsMargins(6, 6, 6, 6);
+        horizontalLayout_14->setObjectName(QString::fromUtf8("horizontalLayout_14"));
+        map_size = new QSlider(tab);
+        map_size->setObjectName(QString::fromUtf8("map_size"));
+        map_size->setMinimum(10);
+        map_size->setMaximum(100);
+        map_size->setValue(40);
+        map_size->setOrientation(Qt::Vertical);
+        map_size->setInvertedAppearance(true);
 
-        horizontalLayout_3->addWidget(show_map_mask);
-
-
-        verticalLayout_4->addLayout(horizontalLayout_3);
+        horizontalLayout_14->addWidget(map_size);
 
         graphicsView = new QGraphicsView(tab);
         graphicsView->setObjectName(QString::fromUtf8("graphicsView"));
 
-        verticalLayout_4->addWidget(graphicsView);
+        horizontalLayout_14->addWidget(graphicsView);
+
+        verticalLayout = new QVBoxLayout();
+        verticalLayout->setSpacing(0);
+        verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
+        show_map_mask = new QCheckBox(tab);
+        show_map_mask->setObjectName(QString::fromUtf8("show_map_mask"));
+        show_map_mask->setChecked(true);
+
+        verticalLayout->addWidget(show_map_mask);
+
+        dilation = new QPushButton(tab);
+        dilation->setObjectName(QString::fromUtf8("dilation"));
+        dilation->setMaximumSize(QSize(65535, 22));
+        QIcon icon1;
+        icon1.addFile(QString::fromUtf8(":/icons/icons/up.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        dilation->setIcon(icon1);
+
+        verticalLayout->addWidget(dilation);
+
+        erosion = new QPushButton(tab);
+        erosion->setObjectName(QString::fromUtf8("erosion"));
+        erosion->setMaximumSize(QSize(65535, 22));
+        QIcon icon2;
+        icon2.addFile(QString::fromUtf8(":/icons/icons/down.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        erosion->setIcon(icon2);
+
+        verticalLayout->addWidget(erosion);
+
+
+        horizontalLayout_14->addLayout(verticalLayout);
 
         tabWidget->addTab(tab, QString());
         tab_2 = new QWidget();
         tab_2->setObjectName(QString::fromUtf8("tab_2"));
         verticalLayout_5 = new QVBoxLayout(tab_2);
-        verticalLayout_5->setSpacing(6);
-        verticalLayout_5->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_5->setSpacing(0);
+        verticalLayout_5->setContentsMargins(6, 6, 6, 6);
         verticalLayout_5->setObjectName(QString::fromUtf8("verticalLayout_5"));
         info_view = new QGraphicsView(tab_2);
         info_view->setObjectName(QString::fromUtf8("info_view"));
@@ -232,10 +288,10 @@ public:
         tabWidget->addTab(tab_2, QString());
         tab_3 = new QWidget();
         tab_3->setObjectName(QString::fromUtf8("tab_3"));
-        verticalLayout_6 = new QVBoxLayout(tab_3);
-        verticalLayout_6->setSpacing(0);
-        verticalLayout_6->setContentsMargins(0, 0, 0, 0);
-        verticalLayout_6->setObjectName(QString::fromUtf8("verticalLayout_6"));
+        verticalLayout_4 = new QVBoxLayout(tab_3);
+        verticalLayout_4->setSpacing(6);
+        verticalLayout_4->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_4->setObjectName(QString::fromUtf8("verticalLayout_4"));
         info_widget = new QTableWidget(tab_3);
         if (info_widget->columnCount() < 2)
             info_widget->setColumnCount(2);
@@ -244,17 +300,42 @@ public:
         QTableWidgetItem *__qtablewidgetitem1 = new QTableWidgetItem();
         info_widget->setHorizontalHeaderItem(1, __qtablewidgetitem1);
         info_widget->setObjectName(QString::fromUtf8("info_widget"));
+        QSizePolicy sizePolicy3(QSizePolicy::Preferred, QSizePolicy::Preferred);
+        sizePolicy3.setHorizontalStretch(0);
+        sizePolicy3.setVerticalStretch(0);
+        sizePolicy3.setHeightForWidth(info_widget->sizePolicy().hasHeightForWidth());
+        info_widget->setSizePolicy(sizePolicy3);
 
-        verticalLayout_6->addWidget(info_widget);
+        verticalLayout_4->addWidget(info_widget);
 
         tabWidget->addTab(tab_3, QString());
+        splitter->addWidget(tabWidget);
 
-        verticalLayout->addWidget(tabWidget);
+        verticalLayout_2->addWidget(splitter);
 
-        dockWidget->setWidget(dockWidgetContents);
-        MainWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(1), dockWidget);
+        MainWindow->setCentralWidget(centralWidget);
+        menuBar = new QMenuBar(MainWindow);
+        menuBar->setObjectName(QString::fromUtf8("menuBar"));
+        menuBar->setGeometry(QRect(0, 0, 880, 21));
+        menu_File = new QMenu(menuBar);
+        menu_File->setObjectName(QString::fromUtf8("menu_File"));
+        menuRecent_Files = new QMenu(menu_File);
+        menuRecent_Files->setObjectName(QString::fromUtf8("menuRecent_Files"));
+        menuView = new QMenu(menuBar);
+        menuView->setObjectName(QString::fromUtf8("menuView"));
+        MainWindow->setMenuBar(menuBar);
+        statusBar = new QStatusBar(MainWindow);
+        statusBar->setObjectName(QString::fromUtf8("statusBar"));
+        MainWindow->setStatusBar(statusBar);
         dockWidget_2 = new QDockWidget(MainWindow);
         dockWidget_2->setObjectName(QString::fromUtf8("dockWidget_2"));
+        QSizePolicy sizePolicy4(QSizePolicy::Preferred, QSizePolicy::Maximum);
+        sizePolicy4.setHorizontalStretch(0);
+        sizePolicy4.setVerticalStretch(0);
+        sizePolicy4.setHeightForWidth(dockWidget_2->sizePolicy().hasHeightForWidth());
+        dockWidget_2->setSizePolicy(sizePolicy4);
+        dockWidget_2->setMinimumSize(QSize(235, 215));
+        dockWidget_2->setMaximumSize(QSize(524287, 250));
         dockWidgetContents_2 = new QWidget();
         dockWidgetContents_2->setObjectName(QString::fromUtf8("dockWidgetContents_2"));
         verticalLayout_3 = new QVBoxLayout(dockWidgetContents_2);
@@ -263,72 +344,147 @@ public:
         verticalLayout_3->setObjectName(QString::fromUtf8("verticalLayout_3"));
         tabWidget_2 = new QTabWidget(dockWidgetContents_2);
         tabWidget_2->setObjectName(QString::fromUtf8("tabWidget_2"));
+        sizePolicy3.setHeightForWidth(tabWidget_2->sizePolicy().hasHeightForWidth());
+        tabWidget_2->setSizePolicy(sizePolicy3);
+        tabWidget_2->setMaximumSize(QSize(16777215, 300));
         tab_4 = new QWidget();
         tab_4->setObjectName(QString::fromUtf8("tab_4"));
-        verticalLayout_8 = new QVBoxLayout(tab_4);
-        verticalLayout_8->setSpacing(6);
-        verticalLayout_8->setContentsMargins(11, 11, 11, 11);
-        verticalLayout_8->setObjectName(QString::fromUtf8("verticalLayout_8"));
-        horizontalLayout = new QHBoxLayout();
+        verticalLayout_9 = new QVBoxLayout(tab_4);
+        verticalLayout_9->setSpacing(3);
+        verticalLayout_9->setContentsMargins(6, 6, 6, 6);
+        verticalLayout_9->setObjectName(QString::fromUtf8("verticalLayout_9"));
+        groupBox = new QGroupBox(tab_4);
+        groupBox->setObjectName(QString::fromUtf8("groupBox"));
+        QSizePolicy sizePolicy5(QSizePolicy::Preferred, QSizePolicy::Expanding);
+        sizePolicy5.setHorizontalStretch(0);
+        sizePolicy5.setVerticalStretch(0);
+        sizePolicy5.setHeightForWidth(groupBox->sizePolicy().hasHeightForWidth());
+        groupBox->setSizePolicy(sizePolicy5);
+        groupBox->setMaximumSize(QSize(16777215, 150));
+        horizontalLayout = new QHBoxLayout(groupBox);
         horizontalLayout->setSpacing(0);
+        horizontalLayout->setContentsMargins(6, 6, 6, 6);
         horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
-        new_model = new QToolButton(tab_4);
-        new_model->setObjectName(QString::fromUtf8("new_model"));
-        new_model->setMaximumSize(QSize(23, 22));
-        QIcon icon;
-        icon.addFile(QString::fromUtf8(":/icons/icons/new.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        new_model->setIcon(icon);
-
-        horizontalLayout->addWidget(new_model);
-
-        open_model = new QToolButton(tab_4);
-        open_model->setObjectName(QString::fromUtf8("open_model"));
-        open_model->setMaximumSize(QSize(23, 22));
-        QIcon icon1;
-        icon1.addFile(QString::fromUtf8(":/icons/icons/open.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        open_model->setIcon(icon1);
-
-        horizontalLayout->addWidget(open_model);
-
-        save_model = new QToolButton(tab_4);
-        save_model->setObjectName(QString::fromUtf8("save_model"));
-        save_model->setMaximumSize(QSize(23, 22));
-        QIcon icon2;
-        icon2.addFile(QString::fromUtf8(":/icons/icons/save.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        save_model->setIcon(icon2);
-
-        horizontalLayout->addWidget(save_model);
-
-        recognize_stains = new QPushButton(tab_4);
-        recognize_stains->setObjectName(QString::fromUtf8("recognize_stains"));
-        recognize_stains->setMaximumSize(QSize(16777215, 22));
-        QIcon icon3;
-        icon3.addFile(QString::fromUtf8(":/icons/icons/run.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        recognize_stains->setIcon(icon3);
-
-        horizontalLayout->addWidget(recognize_stains);
-
-        horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-
-        horizontalLayout->addItem(horizontalSpacer);
-
-
-        verticalLayout_8->addLayout(horizontalLayout);
-
-        train_view = new QGraphicsView(tab_4);
+        train_view = new QGraphicsView(groupBox);
         train_view->setObjectName(QString::fromUtf8("train_view"));
+        sizePolicy3.setHeightForWidth(train_view->sizePolicy().hasHeightForWidth());
+        train_view->setSizePolicy(sizePolicy3);
 
-        verticalLayout_8->addWidget(train_view);
+        horizontalLayout->addWidget(train_view);
 
+        verticalLayout_11 = new QVBoxLayout();
+        verticalLayout_11->setSpacing(0);
+        verticalLayout_11->setObjectName(QString::fromUtf8("verticalLayout_11"));
+        save_model = new QPushButton(groupBox);
+        save_model->setObjectName(QString::fromUtf8("save_model"));
+        save_model->setMaximumSize(QSize(70, 24));
+        QIcon icon3;
+        icon3.addFile(QString::fromUtf8(":/icons/icons/save.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        save_model->setIcon(icon3);
+
+        verticalLayout_11->addWidget(save_model);
+
+        open_model = new QPushButton(groupBox);
+        open_model->setObjectName(QString::fromUtf8("open_model"));
+        open_model->setMaximumSize(QSize(70, 24));
+        open_model->setIcon(icon);
+
+        verticalLayout_11->addWidget(open_model);
+
+        new_model = new QPushButton(groupBox);
+        new_model->setObjectName(QString::fromUtf8("new_model"));
+        sizePolicy3.setHeightForWidth(new_model->sizePolicy().hasHeightForWidth());
+        new_model->setSizePolicy(sizePolicy3);
+        new_model->setMaximumSize(QSize(70, 24));
+        QIcon icon4;
+        icon4.addFile(QString::fromUtf8(":/icons/icons/delete.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        new_model->setIcon(icon4);
+
+        verticalLayout_11->addWidget(new_model);
+
+        verticalSpacer_2 = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+
+        verticalLayout_11->addItem(verticalSpacer_2);
+
+        recognize_stains = new QPushButton(groupBox);
+        recognize_stains->setObjectName(QString::fromUtf8("recognize_stains"));
+        QSizePolicy sizePolicy6(QSizePolicy::Fixed, QSizePolicy::Fixed);
+        sizePolicy6.setHorizontalStretch(0);
+        sizePolicy6.setVerticalStretch(0);
+        sizePolicy6.setHeightForWidth(recognize_stains->sizePolicy().hasHeightForWidth());
+        recognize_stains->setSizePolicy(sizePolicy6);
+        recognize_stains->setMinimumSize(QSize(0, 0));
+        recognize_stains->setMaximumSize(QSize(70, 24));
+        QIcon icon5;
+        icon5.addFile(QString::fromUtf8(":/icons/icons/run.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        recognize_stains->setIcon(icon5);
+
+        verticalLayout_11->addWidget(recognize_stains);
+
+
+        horizontalLayout->addLayout(verticalLayout_11);
+
+
+        verticalLayout_9->addWidget(groupBox);
+
+        horizontalLayout_3 = new QHBoxLayout();
+        horizontalLayout_3->setSpacing(6);
+        horizontalLayout_3->setObjectName(QString::fromUtf8("horizontalLayout_3"));
+        progressBar = new QProgressBar(tab_4);
+        progressBar->setObjectName(QString::fromUtf8("progressBar"));
+        progressBar->setMaximumSize(QSize(16777215, 24));
+        progressBar->setValue(0);
+
+        horizontalLayout_3->addWidget(progressBar);
+
+        run = new QPushButton(tab_4);
+        run->setObjectName(QString::fromUtf8("run"));
+        sizePolicy6.setHeightForWidth(run->sizePolicy().hasHeightForWidth());
+        run->setSizePolicy(sizePolicy6);
+        run->setMaximumSize(QSize(16777215, 24));
+        run->setIcon(icon5);
+
+        horizontalLayout_3->addWidget(run);
+
+
+        verticalLayout_9->addLayout(horizontalLayout_3);
+
+        tabWidget_2->addTab(tab_4, QString());
+        tab_5 = new QWidget();
+        tab_5->setObjectName(QString::fromUtf8("tab_5"));
+        verticalLayout_8 = new QVBoxLayout(tab_5);
+        verticalLayout_8->setSpacing(3);
+        verticalLayout_8->setContentsMargins(6, 6, 6, 6);
+        verticalLayout_8->setObjectName(QString::fromUtf8("verticalLayout_8"));
+        scrollArea = new QScrollArea(tab_5);
+        scrollArea->setObjectName(QString::fromUtf8("scrollArea"));
+        scrollArea->setWidgetResizable(true);
+        scrollAreaWidgetContents = new QWidget();
+        scrollAreaWidgetContents->setObjectName(QString::fromUtf8("scrollAreaWidgetContents"));
+        scrollAreaWidgetContents->setGeometry(QRect(0, 0, 330, 200));
+        verticalLayout_6 = new QVBoxLayout(scrollAreaWidgetContents);
+        verticalLayout_6->setSpacing(6);
+        verticalLayout_6->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_6->setObjectName(QString::fromUtf8("verticalLayout_6"));
+        groupBox_4 = new QGroupBox(scrollAreaWidgetContents);
+        groupBox_4->setObjectName(QString::fromUtf8("groupBox_4"));
+        verticalLayout_10 = new QVBoxLayout(groupBox_4);
+        verticalLayout_10->setSpacing(0);
+        verticalLayout_10->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_10->setObjectName(QString::fromUtf8("verticalLayout_10"));
         horizontalLayout_7 = new QHBoxLayout();
-        horizontalLayout_7->setSpacing(6);
+        horizontalLayout_7->setSpacing(0);
         horizontalLayout_7->setObjectName(QString::fromUtf8("horizontalLayout_7"));
-        label_11 = new QLabel(tab_4);
+        label_11 = new QLabel(groupBox_4);
         label_11->setObjectName(QString::fromUtf8("label_11"));
 
         horizontalLayout_7->addWidget(label_11);
 
-        smoothing = new QSpinBox(tab_4);
+        horizontalSpacer_5 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_7->addItem(horizontalSpacer_5);
+
+        smoothing = new QSpinBox(groupBox_4);
         smoothing->setObjectName(QString::fromUtf8("smoothing"));
         smoothing->setMaximum(10);
         smoothing->setSingleStep(1);
@@ -336,49 +492,59 @@ public:
 
         horizontalLayout_7->addWidget(smoothing);
 
-        label_12 = new QLabel(tab_4);
+        label_12 = new QLabel(groupBox_4);
         label_12->setObjectName(QString::fromUtf8("label_12"));
 
         horizontalLayout_7->addWidget(label_12);
 
-        horizontalSpacer_5 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-        horizontalLayout_7->addItem(horizontalSpacer_5);
+        verticalLayout_10->addLayout(horizontalLayout_7);
 
-
-        verticalLayout_8->addLayout(horizontalLayout_7);
-
-        horizontalLayout_6 = new QHBoxLayout();
-        horizontalLayout_6->setSpacing(0);
-        horizontalLayout_6->setObjectName(QString::fromUtf8("horizontalLayout_6"));
-        label_6 = new QLabel(tab_4);
+        horizontalLayout_4 = new QHBoxLayout();
+        horizontalLayout_4->setSpacing(0);
+        horizontalLayout_4->setObjectName(QString::fromUtf8("horizontalLayout_4"));
+        label_6 = new QLabel(groupBox_4);
         label_6->setObjectName(QString::fromUtf8("label_6"));
 
-        horizontalLayout_6->addWidget(label_6);
+        horizontalLayout_4->addWidget(label_6);
 
-        min_size = new QSpinBox(tab_4);
+        horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_4->addItem(horizontalSpacer);
+
+        min_size = new QSpinBox(groupBox_4);
         min_size->setObjectName(QString::fromUtf8("min_size"));
         min_size->setMaximum(50);
         min_size->setSingleStep(5);
 
-        horizontalLayout_6->addWidget(min_size);
+        horizontalLayout_4->addWidget(min_size);
 
-        label_8 = new QLabel(tab_4);
+        label_8 = new QLabel(groupBox_4);
         label_8->setObjectName(QString::fromUtf8("label_8"));
 
-        horizontalLayout_6->addWidget(label_8);
+        horizontalLayout_4->addWidget(label_8);
 
-        label_10 = new QLabel(tab_4);
-        label_10->setObjectName(QString::fromUtf8("label_10"));
 
-        horizontalLayout_6->addWidget(label_10);
+        verticalLayout_10->addLayout(horizontalLayout_4);
 
-        label_7 = new QLabel(tab_4);
+        horizontalLayout_6 = new QHBoxLayout();
+        horizontalLayout_6->setSpacing(0);
+        horizontalLayout_6->setObjectName(QString::fromUtf8("horizontalLayout_6"));
+        label_7 = new QLabel(groupBox_4);
         label_7->setObjectName(QString::fromUtf8("label_7"));
 
         horizontalLayout_6->addWidget(label_7);
 
-        max_size = new QSpinBox(tab_4);
+        label_10 = new QLabel(groupBox_4);
+        label_10->setObjectName(QString::fromUtf8("label_10"));
+
+        horizontalLayout_6->addWidget(label_10);
+
+        horizontalSpacer_4 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_6->addItem(horizontalSpacer_4);
+
+        max_size = new QSpinBox(groupBox_4);
         max_size->setObjectName(QString::fromUtf8("max_size"));
         max_size->setMaximum(1000);
         max_size->setSingleStep(5);
@@ -386,137 +552,192 @@ public:
 
         horizontalLayout_6->addWidget(max_size);
 
-        label_9 = new QLabel(tab_4);
+        label_9 = new QLabel(groupBox_4);
         label_9->setObjectName(QString::fromUtf8("label_9"));
 
         horizontalLayout_6->addWidget(label_9);
 
-        horizontalSpacer_4 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-        horizontalLayout_6->addItem(horizontalSpacer_4);
+        verticalLayout_10->addLayout(horizontalLayout_6);
 
-
-        verticalLayout_8->addLayout(horizontalLayout_6);
-
-        horizontalLayout_4 = new QHBoxLayout();
-        horizontalLayout_4->setSpacing(6);
-        horizontalLayout_4->setObjectName(QString::fromUtf8("horizontalLayout_4"));
-        progressBar = new QProgressBar(tab_4);
-        progressBar->setObjectName(QString::fromUtf8("progressBar"));
-        progressBar->setValue(0);
-
-        horizontalLayout_4->addWidget(progressBar);
-
-        run = new QPushButton(tab_4);
-        run->setObjectName(QString::fromUtf8("run"));
-
-        horizontalLayout_4->addWidget(run);
-
-        label = new QLabel(tab_4);
+        horizontalLayout_11 = new QHBoxLayout();
+        horizontalLayout_11->setSpacing(0);
+        horizontalLayout_11->setObjectName(QString::fromUtf8("horizontalLayout_11"));
+        label = new QLabel(groupBox_4);
         label->setObjectName(QString::fromUtf8("label"));
+        label->setMaximumSize(QSize(16777215, 24));
 
-        horizontalLayout_4->addWidget(label);
+        horizontalLayout_11->addWidget(label);
 
-        thread_count = new QSpinBox(tab_4);
+        horizontalSpacer_8 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_11->addItem(horizontalSpacer_8);
+
+        thread_count = new QSpinBox(groupBox_4);
         thread_count->setObjectName(QString::fromUtf8("thread_count"));
+        thread_count->setMaximumSize(QSize(16777215, 24));
         thread_count->setMinimum(1);
         thread_count->setMaximum(10);
+        thread_count->setValue(4);
 
-        horizontalLayout_4->addWidget(thread_count);
+        horizontalLayout_11->addWidget(thread_count);
 
 
-        verticalLayout_8->addLayout(horizontalLayout_4);
+        verticalLayout_10->addLayout(horizontalLayout_11);
 
-        tabWidget_2->addTab(tab_4, QString());
-        tab_5 = new QWidget();
-        tab_5->setObjectName(QString::fromUtf8("tab_5"));
-        verticalLayout_9 = new QVBoxLayout(tab_5);
-        verticalLayout_9->setSpacing(6);
-        verticalLayout_9->setContentsMargins(11, 11, 11, 11);
-        verticalLayout_9->setObjectName(QString::fromUtf8("verticalLayout_9"));
-        horizontalLayout_5 = new QHBoxLayout();
-        horizontalLayout_5->setSpacing(0);
-        horizontalLayout_5->setObjectName(QString::fromUtf8("horizontalLayout_5"));
-        open_reco_result = new QToolButton(tab_5);
-        open_reco_result->setObjectName(QString::fromUtf8("open_reco_result"));
-        open_reco_result->setMaximumSize(QSize(23, 22));
-        open_reco_result->setIcon(icon1);
 
-        horizontalLayout_5->addWidget(open_reco_result);
+        verticalLayout_6->addWidget(groupBox_4);
 
-        save_reco_result = new QPushButton(tab_5);
-        save_reco_result->setObjectName(QString::fromUtf8("save_reco_result"));
-        save_reco_result->setMaximumSize(QSize(23, 22));
-        save_reco_result->setIcon(icon2);
-
-        horizontalLayout_5->addWidget(save_reco_result);
-
-        label_2 = new QLabel(tab_5);
-        label_2->setObjectName(QString::fromUtf8("label_2"));
-
-        horizontalLayout_5->addWidget(label_2);
-
-        color_min = new QDoubleSpinBox(tab_5);
-        color_min->setObjectName(QString::fromUtf8("color_min"));
-
-        horizontalLayout_5->addWidget(color_min);
-
-        label_3 = new QLabel(tab_5);
-        label_3->setObjectName(QString::fromUtf8("label_3"));
-
-        horizontalLayout_5->addWidget(label_3);
-
-        color_max = new QDoubleSpinBox(tab_5);
-        color_max->setObjectName(QString::fromUtf8("color_max"));
-        color_max->setDecimals(1);
-        color_max->setMaximum(50);
-        color_max->setValue(5);
-
-        horizontalLayout_5->addWidget(color_max);
-
-        label_4 = new QLabel(tab_5);
+        groupBox_5 = new QGroupBox(scrollAreaWidgetContents);
+        groupBox_5->setObjectName(QString::fromUtf8("groupBox_5"));
+        verticalLayout_12 = new QVBoxLayout(groupBox_5);
+        verticalLayout_12->setSpacing(0);
+        verticalLayout_12->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_12->setObjectName(QString::fromUtf8("verticalLayout_12"));
+        horizontalLayout_10 = new QHBoxLayout();
+        horizontalLayout_10->setSpacing(0);
+        horizontalLayout_10->setObjectName(QString::fromUtf8("horizontalLayout_10"));
+        label_4 = new QLabel(groupBox_5);
         label_4->setObjectName(QString::fromUtf8("label_4"));
+        label_4->setMaximumSize(QSize(16777215, 24));
 
-        horizontalLayout_5->addWidget(label_4);
+        horizontalLayout_10->addWidget(label_4);
 
-        resolution = new QSpinBox(tab_5);
+        horizontalSpacer_6 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_10->addItem(horizontalSpacer_6);
+
+        resolution = new QSpinBox(groupBox_5);
         resolution->setObjectName(QString::fromUtf8("resolution"));
+        resolution->setMaximumSize(QSize(16777215, 24));
         resolution->setMinimum(10);
         resolution->setMaximum(100);
         resolution->setSingleStep(10);
         resolution->setValue(40);
 
-        horizontalLayout_5->addWidget(resolution);
+        horizontalLayout_10->addWidget(resolution);
 
-        label_5 = new QLabel(tab_5);
+        label_5 = new QLabel(groupBox_5);
         label_5->setObjectName(QString::fromUtf8("label_5"));
+        label_5->setMaximumSize(QSize(16777215, 24));
 
-        horizontalLayout_5->addWidget(label_5);
-
-        update_image = new QToolButton(tab_5);
-        update_image->setObjectName(QString::fromUtf8("update_image"));
-        update_image->setMaximumSize(QSize(16777215, 22));
-
-        horizontalLayout_5->addWidget(update_image);
-
-        horizontalSpacer_3 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-
-        horizontalLayout_5->addItem(horizontalSpacer_3);
+        horizontalLayout_10->addWidget(label_5);
 
 
-        verticalLayout_9->addLayout(horizontalLayout_5);
+        verticalLayout_12->addLayout(horizontalLayout_10);
 
-        result_view = new QGraphicsView(tab_5);
-        result_view->setObjectName(QString::fromUtf8("result_view"));
 
-        verticalLayout_9->addWidget(result_view);
+        verticalLayout_6->addWidget(groupBox_5);
+
+        scrollArea->setWidget(scrollAreaWidgetContents);
+
+        verticalLayout_8->addWidget(scrollArea);
 
         tabWidget_2->addTab(tab_5, QString());
 
         verticalLayout_3->addWidget(tabWidget_2);
 
         dockWidget_2->setWidget(dockWidgetContents_2);
-        MainWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(1), dockWidget_2);
+        MainWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(2), dockWidget_2);
+        dockWidget_3 = new QDockWidget(MainWindow);
+        dockWidget_3->setObjectName(QString::fromUtf8("dockWidget_3"));
+        sizePolicy5.setHeightForWidth(dockWidget_3->sizePolicy().hasHeightForWidth());
+        dockWidget_3->setSizePolicy(sizePolicy5);
+        dockWidget_3->setMinimumSize(QSize(224, 0));
+        dockWidgetContents_3 = new QWidget();
+        dockWidgetContents_3->setObjectName(QString::fromUtf8("dockWidgetContents_3"));
+        verticalLayout_13 = new QVBoxLayout(dockWidgetContents_3);
+        verticalLayout_13->setSpacing(3);
+        verticalLayout_13->setContentsMargins(6, 6, 6, 6);
+        verticalLayout_13->setObjectName(QString::fromUtf8("verticalLayout_13"));
+        horizontalLayout_8 = new QHBoxLayout();
+        horizontalLayout_8->setSpacing(0);
+        horizontalLayout_8->setObjectName(QString::fromUtf8("horizontalLayout_8"));
+        open_reco_result = new QPushButton(dockWidgetContents_3);
+        open_reco_result->setObjectName(QString::fromUtf8("open_reco_result"));
+        open_reco_result->setMaximumSize(QSize(65535, 24));
+        open_reco_result->setIcon(icon);
+
+        horizontalLayout_8->addWidget(open_reco_result);
+
+        save_reco_result = new QPushButton(dockWidgetContents_3);
+        save_reco_result->setObjectName(QString::fromUtf8("save_reco_result"));
+        save_reco_result->setMaximumSize(QSize(65535, 24));
+        save_reco_result->setIcon(icon3);
+
+        horizontalLayout_8->addWidget(save_reco_result);
+
+        contour = new QCheckBox(dockWidgetContents_3);
+        contour->setObjectName(QString::fromUtf8("contour"));
+        contour->setMaximumSize(QSize(16777215, 24));
+
+        horizontalLayout_8->addWidget(contour);
+
+        horizontalSpacer_7 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_8->addItem(horizontalSpacer_7);
+
+
+        verticalLayout_13->addLayout(horizontalLayout_8);
+
+        horizontalLayout_5 = new QHBoxLayout();
+        horizontalLayout_5->setSpacing(0);
+        horizontalLayout_5->setObjectName(QString::fromUtf8("horizontalLayout_5"));
+        label_14 = new QLabel(dockWidgetContents_3);
+        label_14->setObjectName(QString::fromUtf8("label_14"));
+
+        horizontalLayout_5->addWidget(label_14);
+
+        type = new QComboBox(dockWidgetContents_3);
+        type->setObjectName(QString::fromUtf8("type"));
+        type->setMaximumSize(QSize(16777215, 24));
+
+        horizontalLayout_5->addWidget(type);
+
+        horizontalSpacer_3 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_5->addItem(horizontalSpacer_3);
+
+
+        verticalLayout_13->addLayout(horizontalLayout_5);
+
+        result_view = new QGraphicsView(dockWidgetContents_3);
+        result_view->setObjectName(QString::fromUtf8("result_view"));
+
+        verticalLayout_13->addWidget(result_view);
+
+        horizontalLayout_12 = new QHBoxLayout();
+        horizontalLayout_12->setSpacing(6);
+        horizontalLayout_12->setObjectName(QString::fromUtf8("horizontalLayout_12"));
+        label_2 = new QLabel(dockWidgetContents_3);
+        label_2->setObjectName(QString::fromUtf8("label_2"));
+
+        horizontalLayout_12->addWidget(label_2);
+
+        color_min = new QDoubleSpinBox(dockWidgetContents_3);
+        color_min->setObjectName(QString::fromUtf8("color_min"));
+        color_min->setMaximumSize(QSize(16777215, 24));
+
+        horizontalLayout_12->addWidget(color_min);
+
+        color_max = new QDoubleSpinBox(dockWidgetContents_3);
+        color_max->setObjectName(QString::fromUtf8("color_max"));
+        color_max->setMaximumSize(QSize(16777215, 24));
+        color_max->setDecimals(1);
+        color_max->setMaximum(50);
+        color_max->setValue(5);
+
+        horizontalLayout_12->addWidget(color_max);
+
+        horizontalSpacer_9 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_12->addItem(horizontalSpacer_9);
+
+
+        verticalLayout_13->addLayout(horizontalLayout_12);
+
+        dockWidget_3->setWidget(dockWidgetContents_3);
+        MainWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(2), dockWidget_3);
 
         menuBar->addAction(menu_File->menuAction());
         menuBar->addAction(menuView->menuAction());
@@ -543,41 +764,52 @@ public:
         actionBatch_analysis->setText(QApplication::translate("MainWindow", "Batch analysis...", 0, QApplication::UnicodeUTF8));
         actionBatch_generate_images->setText(QApplication::translate("MainWindow", "Batch generate images...", 0, QApplication::UnicodeUTF8));
         show_recog->setText(QApplication::translate("MainWindow", "Show recognition", 0, QApplication::UnicodeUTF8));
-        menu_File->setTitle(QApplication::translate("MainWindow", "&File", 0, QApplication::UnicodeUTF8));
-        menuRecent_Files->setTitle(QApplication::translate("MainWindow", "Recent Files", 0, QApplication::UnicodeUTF8));
-        menuView->setTitle(QApplication::translate("MainWindow", "View", 0, QApplication::UnicodeUTF8));
-        dockWidget->setWindowTitle(QApplication::translate("MainWindow", "Slide Overview", 0, QApplication::UnicodeUTF8));
+        result_edge->setText(QApplication::translate("MainWindow", "Edge", 0, QApplication::UnicodeUTF8));
         show_map_mask->setText(QApplication::translate("MainWindow", "Show mask", 0, QApplication::UnicodeUTF8));
-        tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("MainWindow", "Tab 1", 0, QApplication::UnicodeUTF8));
-        tabWidget->setTabText(tabWidget->indexOf(tab_2), QApplication::translate("MainWindow", "Tab 2", 0, QApplication::UnicodeUTF8));
+        dilation->setText(QApplication::translate("MainWindow", "Larger", 0, QApplication::UnicodeUTF8));
+        erosion->setText(QApplication::translate("MainWindow", "Smaller", 0, QApplication::UnicodeUTF8));
+        tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("MainWindow", "Navigation window", 0, QApplication::UnicodeUTF8));
+        tabWidget->setTabText(tabWidget->indexOf(tab_2), QApplication::translate("MainWindow", "Tab", 0, QApplication::UnicodeUTF8));
         QTableWidgetItem *___qtablewidgetitem = info_widget->horizontalHeaderItem(0);
         ___qtablewidgetitem->setText(QApplication::translate("MainWindow", "Property", 0, QApplication::UnicodeUTF8));
         QTableWidgetItem *___qtablewidgetitem1 = info_widget->horizontalHeaderItem(1);
         ___qtablewidgetitem1->setText(QApplication::translate("MainWindow", "Value", 0, QApplication::UnicodeUTF8));
-        tabWidget->setTabText(tabWidget->indexOf(tab_3), QApplication::translate("MainWindow", "Page", 0, QApplication::UnicodeUTF8));
-        dockWidget_2->setWindowTitle(QApplication::translate("MainWindow", "Color Recognition", 0, QApplication::UnicodeUTF8));
-        new_model->setText(QApplication::translate("MainWindow", "...", 0, QApplication::UnicodeUTF8));
-        open_model->setText(QApplication::translate("MainWindow", "...", 0, QApplication::UnicodeUTF8));
-        save_model->setText(QApplication::translate("MainWindow", "...", 0, QApplication::UnicodeUTF8));
-        recognize_stains->setText(QApplication::translate("MainWindow", "Recognize Stains", 0, QApplication::UnicodeUTF8));
-        label_11->setText(QApplication::translate("MainWindow", "Smoothing:", 0, QApplication::UnicodeUTF8));
+        tabWidget->setTabText(tabWidget->indexOf(tab_3), QApplication::translate("MainWindow", "Info", 0, QApplication::UnicodeUTF8));
+        menu_File->setTitle(QApplication::translate("MainWindow", "&File", 0, QApplication::UnicodeUTF8));
+        menuRecent_Files->setTitle(QApplication::translate("MainWindow", "Recent Files", 0, QApplication::UnicodeUTF8));
+        menuView->setTitle(QApplication::translate("MainWindow", "View", 0, QApplication::UnicodeUTF8));
+        dockWidget_2->setWindowTitle(QApplication::translate("MainWindow", "Recognition window", 0, QApplication::UnicodeUTF8));
+        groupBox->setTitle(QApplication::translate("MainWindow", "Classifier", 0, QApplication::UnicodeUTF8));
+        save_model->setText(QApplication::translate("MainWindow", "Save...", 0, QApplication::UnicodeUTF8));
+        open_model->setText(QApplication::translate("MainWindow", "Open...", 0, QApplication::UnicodeUTF8));
+        new_model->setText(QApplication::translate("MainWindow", "Clear", 0, QApplication::UnicodeUTF8));
+        recognize_stains->setText(QApplication::translate("MainWindow", "Test", 0, QApplication::UnicodeUTF8));
+        run->setText(QApplication::translate("MainWindow", "Run Whole Slide", 0, QApplication::UnicodeUTF8));
+        tabWidget_2->setTabText(tabWidget_2->indexOf(tab_4), QApplication::translate("MainWindow", "Main view", 0, QApplication::UnicodeUTF8));
+        groupBox_4->setTitle(QApplication::translate("MainWindow", "Recognition", 0, QApplication::UnicodeUTF8));
+        label_11->setText(QApplication::translate("MainWindow", "Smooth/defragment:", 0, QApplication::UnicodeUTF8));
         label_12->setText(QApplication::translate("MainWindow", "iteration(s)", 0, QApplication::UnicodeUTF8));
-        label_6->setText(QApplication::translate("MainWindow", "Min Size:", 0, QApplication::UnicodeUTF8));
+        label_6->setText(QApplication::translate("MainWindow", "Min target size:", 0, QApplication::UnicodeUTF8));
         label_8->setText(QApplication::translate("MainWindow", "micron(s)", 0, QApplication::UnicodeUTF8));
+        label_7->setText(QApplication::translate("MainWindow", "Max target size:", 0, QApplication::UnicodeUTF8));
         label_10->setText(QString());
-        label_7->setText(QApplication::translate("MainWindow", "Max Size", 0, QApplication::UnicodeUTF8));
-        label_9->setText(QApplication::translate("MainWindow", "microns(s)", 0, QApplication::UnicodeUTF8));
-        run->setText(QApplication::translate("MainWindow", "Run", 0, QApplication::UnicodeUTF8));
-        label->setText(QApplication::translate("MainWindow", "Thread Count", 0, QApplication::UnicodeUTF8));
-        tabWidget_2->setTabText(tabWidget_2->indexOf(tab_4), QApplication::translate("MainWindow", "Tab 1", 0, QApplication::UnicodeUTF8));
-        open_reco_result->setText(QString());
-        save_reco_result->setText(QString());
-        label_2->setText(QApplication::translate("MainWindow", "min:", 0, QApplication::UnicodeUTF8));
-        label_3->setText(QApplication::translate("MainWindow", "max:", 0, QApplication::UnicodeUTF8));
-        label_4->setText(QApplication::translate("MainWindow", "resolution:", 0, QApplication::UnicodeUTF8));
-        label_5->setText(QApplication::translate("MainWindow", "mm", 0, QApplication::UnicodeUTF8));
-        update_image->setText(QApplication::translate("MainWindow", "Update", 0, QApplication::UnicodeUTF8));
-        tabWidget_2->setTabText(tabWidget_2->indexOf(tab_5), QApplication::translate("MainWindow", "Tab 2", 0, QApplication::UnicodeUTF8));
+        label_9->setText(QApplication::translate("MainWindow", "micron(s)", 0, QApplication::UnicodeUTF8));
+        label->setText(QApplication::translate("MainWindow", "Thread count", 0, QApplication::UnicodeUTF8));
+        groupBox_5->setTitle(QApplication::translate("MainWindow", "Visualization", 0, QApplication::UnicodeUTF8));
+        label_4->setText(QApplication::translate("MainWindow", "Image resolution:", 0, QApplication::UnicodeUTF8));
+        label_5->setText(QApplication::translate("MainWindow", "micron(s)", 0, QApplication::UnicodeUTF8));
+        tabWidget_2->setTabText(tabWidget_2->indexOf(tab_5), QApplication::translate("MainWindow", "Options view", 0, QApplication::UnicodeUTF8));
+        dockWidget_3->setWindowTitle(QApplication::translate("MainWindow", "Result window", 0, QApplication::UnicodeUTF8));
+        open_reco_result->setText(QApplication::translate("MainWindow", "Open...", 0, QApplication::UnicodeUTF8));
+        save_reco_result->setText(QApplication::translate("MainWindow", "Save...", 0, QApplication::UnicodeUTF8));
+        contour->setText(QApplication::translate("MainWindow", "contour", 0, QApplication::UnicodeUTF8));
+        label_14->setText(QApplication::translate("MainWindow", "Type:", 0, QApplication::UnicodeUTF8));
+        type->clear();
+        type->insertItems(0, QStringList()
+         << QApplication::translate("MainWindow", "Target density", 0, QApplication::UnicodeUTF8)
+         << QApplication::translate("MainWindow", "Target size", 0, QApplication::UnicodeUTF8)
+        );
+        label_2->setText(QApplication::translate("MainWindow", "Scale bar min/max:", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 
 };

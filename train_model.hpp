@@ -15,8 +15,6 @@ public:// for showing the rgb distribution
     double r[9];
 public://parameters
     unsigned int smoothing;
-    unsigned int max_size;// micron
-    unsigned int min_size;// micron
 private:
 public:
     train_model(void);
@@ -28,8 +26,7 @@ public:
 public:
     unsigned char predict(image::rgb_color value);
     void recognize(const image::color_image& I,image::grayscale_image& result,bool* terminated = 0);
-    void cca(const image::grayscale_image& result,
-             float pixel_size,
+    void cca(const image::grayscale_image& result,float pixel_size,
              unsigned int border,std::vector<image::vector<2> >& pos,std::vector<float>& features);
     bool load_from_file(const char* file_name);
     void save_to_file(const char* file_name);

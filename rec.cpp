@@ -91,7 +91,7 @@ int rec(int ac, char *av[])
 
     bool terminated = false;
     ml.predict(0);
-    w.run(800,100,vm["thread_count"].as<int>(),&ml,&terminated);
+    w.run(4000,200,vm["thread_count"].as<int>(),&ml,&terminated);
     std::cout << "recognition completed." << std::endl;
     if(w.result_pos.empty())
     {

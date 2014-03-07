@@ -11,7 +11,8 @@ class QMapGraphicsScene : public QGraphicsScene
 public:
     wsi* w;
     bool show_mask;
-    QMapGraphicsScene(QMainScene& main_scene_):main_scene(main_scene_),show_mask(true){}
+    unsigned int resolution;
+    QMapGraphicsScene(QMainScene& main_scene_):main_scene(main_scene_),show_mask(true),resolution(40){}
 protected:
     //void mouseDoubleClickEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     //void mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent );

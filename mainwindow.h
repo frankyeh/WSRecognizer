@@ -45,6 +45,10 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     void resizeEvent(QResizeEvent* event);
+public slots:
+
+
+
 private slots:
     void on_action_Open_triggered();
 
@@ -61,11 +65,12 @@ private slots:
 
     void update_sdi(void);
     void update_color_bar(void);
+    void update_result();
+
 
     void on_open_reco_result_clicked();
 
 
-    void on_update_image_clicked();
 
     void on_new_model_clicked();
 
@@ -80,6 +85,12 @@ private slots:
     void on_actionBatch_analysis_triggered();
 
     void on_actionBatch_generate_images_triggered();
+
+    void on_map_size_valueChanged(int value);
+
+    void on_dilation_clicked();
+
+    void on_erosion_clicked();
 
 public:
     Ui::MainWindow *ui;

@@ -43,8 +43,11 @@ public:
              unsigned int thread_count,train_model* model,bool* terminated);
     void save_recognition_result(const char* file_name);
     bool load_recognition_result(const char* file_name);
+    bool load_text_reco_result(const char* file_name);
     void get_distribution_image(image::basic_image<float,2>& feature_mapping,
-                                float resolution_mm,float band_width_mm,bool feature);
+                                float resolution_mm,float band_width_mm,bool feature,
+                                float min_size,float max_size);
+    void add_contour(image::color_image& sdi_image);
 public:
     static bool can_open(const char* file_name);
 };

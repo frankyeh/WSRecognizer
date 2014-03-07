@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'gen_dialog.ui'
 **
-** Created: Thu Jan 2 12:14:38 2014
+** Created: Fri Jan 10 15:57:45 2014
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -61,6 +61,12 @@ public:
     QLabel *label_4;
     QSpinBox *resolution;
     QLabel *label_7;
+    QHBoxLayout *horizontalLayout_4;
+    QSpacerItem *horizontalSpacer;
+    QLabel *label_8;
+    QSpinBox *min_size;
+    QSpinBox *max_size;
+    QLabel *label_14;
     QCheckBox *contour;
     QDialogButtonBox *buttonBox;
 
@@ -68,7 +74,7 @@ public:
     {
         if (gen_dialog->objectName().isEmpty())
             gen_dialog->setObjectName(QString::fromUtf8("gen_dialog"));
-        gen_dialog->resize(294, 320);
+        gen_dialog->resize(293, 326);
         verticalLayout = new QVBoxLayout(gen_dialog);
         verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
         horizontalLayout = new QHBoxLayout();
@@ -211,6 +217,41 @@ public:
 
         verticalLayout_3->addWidget(tif_widget);
 
+        horizontalLayout_4 = new QHBoxLayout();
+        horizontalLayout_4->setSpacing(0);
+        horizontalLayout_4->setObjectName(QString::fromUtf8("horizontalLayout_4"));
+        horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_4->addItem(horizontalSpacer);
+
+        label_8 = new QLabel(groupBox_2);
+        label_8->setObjectName(QString::fromUtf8("label_8"));
+
+        horizontalLayout_4->addWidget(label_8);
+
+        min_size = new QSpinBox(groupBox_2);
+        min_size->setObjectName(QString::fromUtf8("min_size"));
+        min_size->setMaximum(50);
+        min_size->setSingleStep(5);
+
+        horizontalLayout_4->addWidget(min_size);
+
+        max_size = new QSpinBox(groupBox_2);
+        max_size->setObjectName(QString::fromUtf8("max_size"));
+        max_size->setMaximum(1000);
+        max_size->setSingleStep(5);
+        max_size->setValue(100);
+
+        horizontalLayout_4->addWidget(max_size);
+
+        label_14 = new QLabel(groupBox_2);
+        label_14->setObjectName(QString::fromUtf8("label_14"));
+
+        horizontalLayout_4->addWidget(label_14);
+
+
+        verticalLayout_3->addLayout(horizontalLayout_4);
+
         contour = new QCheckBox(groupBox_2);
         contour->setObjectName(QString::fromUtf8("contour"));
 
@@ -253,9 +294,11 @@ public:
          << QApplication::translate("gen_dialog", "TIF file", 0, QApplication::UnicodeUTF8)
          << QApplication::translate("gen_dialog", "MAT file", 0, QApplication::UnicodeUTF8)
         );
-        label_3->setText(QApplication::translate("gen_dialog", "min/max", 0, QApplication::UnicodeUTF8));
+        label_3->setText(QApplication::translate("gen_dialog", "min/max value", 0, QApplication::UnicodeUTF8));
         label_4->setText(QApplication::translate("gen_dialog", "resolution", 0, QApplication::UnicodeUTF8));
         label_7->setText(QApplication::translate("gen_dialog", "microns", 0, QApplication::UnicodeUTF8));
+        label_8->setText(QApplication::translate("gen_dialog", "Size min/max size", 0, QApplication::UnicodeUTF8));
+        label_14->setText(QApplication::translate("gen_dialog", "um", 0, QApplication::UnicodeUTF8));
         contour->setText(QApplication::translate("gen_dialog", "Add contour", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 

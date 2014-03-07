@@ -58,8 +58,6 @@ void rec_dialog::on_open_model_file_clicked()
     model_name = QFileInfo(filename).baseName();
     ui->classification_label->setText(QString("Classification Model: ")+model_name);
     ui->smoothing->setValue(ml->smoothing);
-    ui->min_size->setValue(ml->min_size);
-    ui->max_size->setValue(ml->max_size);
 }
 
 void rec_dialog::add_log(QString text)
@@ -90,7 +88,7 @@ void rec_dialog::run_thread(train_model* ml_ptr)
             add_log("spatial resolution:" + QString::number(w.pixel_size) + " micron");
         }
 
-        w.run(800,100,ui->thread->value(),ml.get(),&terminated);
+        w.run(4000,200,ui->thread->value(),ml.get(),&terminated);
         add_log("recognition completed.");
         if(w.result_pos.empty())
         {
@@ -151,8 +149,6 @@ void rec_dialog::on_run_clicked()
         return;
     }
     ml->smoothing = ui->smoothing->value();
-    ml->max_size = ui->max_size->value();
-    ml->min_size = ui->min_size->value();
     terminated = false;
     thread.reset(new boost::thread(&rec_dialog::run_thread,this,ml.release()));
     timer.reset(new QTimer(this));
