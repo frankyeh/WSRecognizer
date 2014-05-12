@@ -61,7 +61,8 @@ int gen(int ac, char *av[])
 
 
     image::basic_image<float,2> sdi_value;
-    w.get_distribution_image(sdi_value,resolution,resolution,type,min_size,max_size);
+    image::basic_image<unsigned char,2> sdi_contour;
+    w.get_distribution_image(sdi_value,sdi_contour,resolution,resolution,type,min_size,max_size);
 
     std::cout << "image_dimension:" << sdi_value.width() << " by " << sdi_value.height() << std::endl;
     image::color_image sdi_image(sdi_value.geometry());

@@ -30,6 +30,7 @@ private:
     bool terminated;
 private:
     image::basic_image<float,2> sdi_value;
+    image::basic_image<unsigned char,2> sdi_contour;
     image::color_image sdi_image;
     QGraphicsScene color_bar;
 private slots:

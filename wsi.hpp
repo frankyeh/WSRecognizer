@@ -47,9 +47,15 @@ public:
     bool load_recognition_result(const char* file_name);
     bool load_text_reco_result(const char* file_name);
     void get_distribution_image(image::basic_image<float,2>& feature_mapping,
+                                image::basic_image<unsigned char,2>& contour,
                                 float resolution_mm,float band_width_mm,bool feature,
                                 float min_size,float max_size);
-    void add_contour(image::color_image& sdi_image);
+    void get_result_txt(std::vector<std::string>& name,
+                        std::vector<float>& value);
+public: // report
+    float mean_value;
+    float max_value;
+    float q1_value,q3_value;
 public:
     static bool can_open(const char* file_name);
 };

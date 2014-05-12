@@ -40,8 +40,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QObject::connect(ui->type,SIGNAL(currentIndexChanged(int)),this,SLOT(update_result()));
     QObject::connect(ui->contour,SIGNAL(clicked()),this,SLOT(update_result()));
+    QObject::connect(ui->flip,SIGNAL(clicked()),this,SLOT(update_color_bar()));
     QObject::connect(ui->color_min,SIGNAL(valueChanged(double)),this,SLOT(update_color_bar()));
     QObject::connect(ui->color_max,SIGNAL(valueChanged(double)),this,SLOT(update_color_bar()));
+    QObject::connect(ui->orientation,SIGNAL(valueChanged(int)),this,SLOT(update_color_bar()));
+    QObject::connect(ui->resolution,SIGNAL(valueChanged(int)),this,SLOT(update_sdi()));
+    QObject::connect(ui->resolution,SIGNAL(valueChanged(int)),this,SLOT(update_color_bar()));
+
     QStringList recent_file_list = settings.value("recent_files").toStringList();
     updateRecentList(recent_file_list);
     if(!recent_file_list.isEmpty())
@@ -213,7 +218,31 @@ void MainWindow::show_run_progress(void)
 }
 void MainWindow::update_sdi(void)
 {
-    w->get_distribution_image(sdi_value,ui->resolution->value(),ui->resolution->value(),ui->type->currentIndex(),ui->min_size->value(),ui->max_size->value());
+    w->get_distribution_image(sdi_value,sdi_contour,ui->resolution->value(),ui->resolution->value(),ui->type->currentIndex(),ui->min_size->value(),ui->max_size->value());
+
+
+    ui->tableWidget->clear();
+    ui->tableWidget->setRowCount(4);
+    ui->tableWidget->setItem(0, 0, new QTableWidgetItem("mean"));
+    ui->tableWidget->setItem(0, 1, new QTableWidgetItem(QString::number(w->mean_value)));
+    ui->tableWidget->setItem(1, 0, new QTableWidgetItem("max"));
+    ui->tableWidget->setItem(1, 1, new QTableWidgetItem(QString::number(w->max_value)));
+    ui->tableWidget->setItem(2, 0, new QTableWidgetItem("q1"));
+    ui->tableWidget->setItem(2, 1, new QTableWidgetItem(QString::number(w->q1_value)));
+    ui->tableWidget->setItem(3, 0, new QTableWidgetItem("q3"));
+    ui->tableWidget->setItem(3, 1, new QTableWidgetItem(QString::number(w->q3_value)));
+    QCPStatisticalBox *newBox = 0;
+    ui->boxplot->clearPlottables();
+    ui->boxplot->xAxis->setRange(0,2);
+    ui->boxplot->xAxis->setTicks(false);
+    ui->boxplot->xAxis->setGrid(false);
+    ui->boxplot->yAxis->setRange(0,w->max_value*1.2);
+    ui->boxplot->yAxis->setLabel(ui->type->currentText());
+    ui->boxplot->yAxis->setGrid(false);
+    ui->boxplot->addPlottable(newBox = new QCPStatisticalBox(ui->boxplot->xAxis, ui->boxplot->yAxis));
+    //newBox->setName("Measurement Series 1");
+    newBox->setData(1, 0, w->q1_value, w->mean_value, w->q3_value, w->max_value);
+    ui->boxplot->replot();
 }
 
 void MainWindow::update_color_bar(void)
@@ -238,14 +267,39 @@ void MainWindow::update_color_bar(void)
             }
         }
         if(ui->contour->isChecked())
-            w->add_contour(sdi_image);
-        result_scene.addPixmap(QPixmap::fromImage(
-                QImage((unsigned char*)&*sdi_image.begin(),
-                       sdi_image.width(),sdi_image.height(),QImage::Format_RGB32)))->moveBy(0,10);
+        {
+            for(unsigned int index = 0;index < sdi_contour.size();++index)
+                if(sdi_contour[index])
+                    sdi_image[index] = 0;
+
+        }
+
+        {
+            QImage I = QImage((unsigned char*)&*sdi_image.begin(),
+               sdi_image.width(),sdi_image.height(),QImage::Format_RGB32);
+            QPixmap main_image;
+            main_image = QPixmap::fromImage(ui->flip->isChecked()? I.mirrored():I);
+            if(ui->orientation->value() != 0)
+            {
+                QPixmap output(main_image.size());
+                output.fill(Qt::darkBlue);
+                QPainter p(&output);
+                p.setRenderHint(QPainter::Antialiasing);
+                p.setRenderHint(QPainter::SmoothPixmapTransform);
+                p.setRenderHint(QPainter::HighQualityAntialiasing);
+                p.translate(output.size().width() / 2, output.size().height() / 2);
+                p.rotate(ui->orientation->value()*10);
+                p.translate(-output.size().width() / 2, -output.size().height() / 2);
+                p.drawPixmap(0, 0, main_image);
+                p.end();
+                main_image = output;
+            }
+            result_scene.addPixmap(main_image)->moveBy(0,10);
+            right = main_image.width();
+            buttom = main_image.height()+10;
+        }
 
 
-        right = sdi_image.width();
-        buttom = sdi_image.height()+10;
 
 
         // show 5 mm

@@ -280,6 +280,7 @@ bool wsi::load_text_reco_result(const char* file_name)
 }
 
 void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
+                                 image::basic_image<unsigned char,2>& contour,
                                  float resolution_mm,float band_width_mm,bool feature,
                                  float min_size,float max_size)
 {
@@ -289,6 +290,8 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
     output_geo[1] = (float)dim[1]*pixel_size/resolution_mm;
     feature_mapping.clear();
     feature_mapping.resize(output_geo);
+    contour.clear();
+    contour.resize(output_geo);
     image::basic_image<float,2> accumulated_w(output_geo);
     float ratio = pixel_size/resolution_mm;
     float h = band_width_mm/resolution_mm; // band_width in pixels
@@ -333,18 +336,47 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
         // output unit in counts per 100 mm ^2
         image::divide_constant(feature_mapping,h*std::sqrt(2.0*3.1415926)*resolution_mm*resolution_mm/100.0);
     }
-}
-void wsi::add_contour(image::color_image& sdi_image)
-{
+
+    // add contour
     if(map_mask.empty())
         return;
-    image::grayscale_image contour;
-    image::morphology::edge(map_mask,contour);
-    float ratio = (float)contour.width()/(float)sdi_image.width();
-    for(image::pixel_index<2> index;index.is_valid(contour.geometry());index.next(contour.geometry()))
+    image::grayscale_image map_contour;
+    image::morphology::edge(map_mask,map_contour);
+    image::scale(map_contour,contour);
+    // calculate report
+
+    max_value = *std::max_element(feature_mapping.begin(),feature_mapping.end());
+    if(max_value == 0.0)
     {
-        if(contour[index.index()])
-            sdi_image.at(index.x()/ratio,index.y()/ratio) = 0;
+        mean_value = 0.0;
+        q1_value = 0.0;
+        q3_value = 0.0;
+        return;
+    }
+
+    float threshold = max_value*0.01;
+    std::vector<float> values;
+    values.reserve(feature_mapping.size());
+    for(unsigned int index = 0;index < feature_mapping.size();++index)
+        if(feature_mapping[index] > threshold)
+            values.push_back(feature_mapping[index]);
+    if(values.empty())
+        return;
+    mean_value = std::accumulate(values.begin(),values.end(),0.0)/values.size();
+    unsigned int quantile = values.size()/4;
+    std::nth_element(values.begin(),values.begin()+quantile,values.end(),std::less<float>());
+    q1_value = values[quantile];
+    std::nth_element(values.begin(),values.begin()+quantile,values.end(),std::greater<float>());
+    q3_value = values[quantile];
+
+
+    // trim image
+    image::geometry<2> from,to;
+    image::bounding_box(feature_mapping,from,to,0);
+    if (from[0] < to[0])
+    {
+        image::crop(feature_mapping,from,to);
+        image::crop(contour,from,to);
     }
 }
 

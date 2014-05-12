@@ -68,7 +68,8 @@ void gen_dialog::on_buttonBox_accepted()
             continue;
         }
         image::basic_image<float,2> sdi_value;
-        w.get_distribution_image(sdi_value,
+        image::basic_image<unsigned char,2> sdi_contour;
+        w.get_distribution_image(sdi_value,sdi_contour,
                                  ui->resolution->value(),ui->resolution->value(),
                                  ui->type->currentIndex(),ui->min_size->value(),ui->max_size->value());
 
@@ -83,7 +84,11 @@ void gen_dialog::on_buttonBox_accepted()
             }
         }
         if(ui->contour->isChecked())
-            w.add_contour(sdi_image);
+        {
+            for(unsigned int index = 0;index < sdi_value.size();++index)
+                if(sdi_contour[index])
+                    sdi_value[index] = 0;
+        }
 
         if(ui->format->currentIndex() == 1)// mat
         {

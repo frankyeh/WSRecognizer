@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'rec_dialog.ui'
 **
-** Created: Fri Jan 10 15:57:45 2014
+** Created: Thu Mar 6 12:45:05 2014
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
