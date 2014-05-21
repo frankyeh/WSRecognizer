@@ -6,11 +6,14 @@
 
 class MainWindow;
 class QTrainScene;
-
+class wsi;
 class QMainScene : public QGraphicsScene
 {
     Q_OBJECT
 public:
+    wsi* w;
+    unsigned int level;
+    unsigned int x,y;
     float pixel_size;
     image::color_image main_image, annotated_image;
     bool show_recog;
@@ -21,10 +24,13 @@ public:
     image::grayscale_image result;
     std::vector<image::vector<2> > result_pos;
     std::vector<float> result_features;
+    void move_to(unsigned int x_,unsigned int y_);
 protected:
+    bool moved;
+    unsigned int lx,ly;
     //void mouseDoubleClickEvent ( QGraphicsSceneMouseEvent * mouseEvent );
-    //void mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent );
-    //void mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent );
+    void mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent );
+    void mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent );
 signals:
     

@@ -5,6 +5,7 @@
 #include <QGraphicsTextItem>
 #include <QProgressDialog>
 #include <QAction>
+#include <QInputDialog>
 #include "wsi.hpp"
 #include "rec_dialog.hpp"
 #include "gen_dialog.hpp"
@@ -102,6 +103,7 @@ void MainWindow::openFile(QString filename)
         return;
     }
     w.reset(new_w.release());
+    main_scene.w = w.get();
     map_scene.w = w.get();
     map_scene.update();
     if(!w->associated_image.empty())
@@ -121,7 +123,7 @@ void MainWindow::openFile(QString filename)
         ui->info_widget->setItem(index, 0, new QTableWidgetItem(w->property_name[index].c_str()));
         ui->info_widget->setItem(index, 1, new QTableWidgetItem(w->property_value[index].c_str()));
     }
-
+    ui->main_scale->setMaximum(w->level-1);
     main_scene.main_image.clear();
     main_scene.pixel_size = w->pixel_size;
     main_scene.update_image();
@@ -453,6 +455,8 @@ void MainWindow::on_actionBatch_generate_images_triggered()
 
 void MainWindow::on_map_size_valueChanged(int value)
 {
+    if(!w.get())
+        return;
     map_scene.resolution = value;
     map_scene.update();
 }
@@ -467,4 +471,44 @@ void MainWindow::on_erosion_clicked()
 {
     image::morphology::erosion(w->map_mask);
     map_scene.update();
+}
+
+void MainWindow::on_smoothing_2_clicked()
+{
+    image::morphology::smoothing(w->map_mask);
+    map_scene.update();
+}
+
+void MainWindow::on_defragment_clicked()
+{
+    image::morphology::defragment(w->map_mask);
+    map_scene.update();
+}
+
+
+void MainWindow::on_clear_all_clicked()
+{
+    std::fill(w->map_mask.begin(),w->map_mask.end(),0);
+    map_scene.update();
+}
+
+void MainWindow::on_threshold_clicked()
+{
+    bool ok;
+    image::grayscale_image gray_image(w->map_image);
+    int threshold = QInputDialog::getInt(this,"DSI Studio","Please assign the threshold",
+                                         (int)image::segmentation::otsu_threshold(gray_image),
+                                         0,255,1,&ok);
+    if (!ok)
+        return;
+    w->map_mask = gray_image;
+    image::binary(w->map_mask,std::bind2nd (std::greater<unsigned char>(), threshold));
+        map_scene.update();
+}
+
+
+void MainWindow::on_main_scale_sliderMoved(int position)
+{
+    main_scene.level = position;
+    main_scene.move_to(main_scene.x,main_scene.y);
 }

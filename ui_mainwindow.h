@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Sun May 11 23:00:11 2014
+** Created: Wed May 21 12:50:10 2014
 **      by: Qt User Interface Compiler version 4.8.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -38,7 +38,7 @@
 #include <QtGui/QTableWidget>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QWidget>
-#include "plot/qcustomplot.h"
+#include "qcustomplot.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -57,6 +57,8 @@ public:
     QCheckBox *show_recog;
     QCheckBox *result_edge;
     QSpacerItem *horizontalSpacer_2;
+    QHBoxLayout *horizontalLayout_13;
+    QSlider *main_scale;
     QGraphicsView *main_view;
     QTabWidget *tabWidget;
     QWidget *tab;
@@ -65,6 +67,10 @@ public:
     QGraphicsView *graphicsView;
     QVBoxLayout *verticalLayout;
     QCheckBox *show_map_mask;
+    QPushButton *clear_all;
+    QPushButton *smoothing_2;
+    QPushButton *defragment;
+    QPushButton *threshold;
     QPushButton *dilation;
     QPushButton *erosion;
     QWidget *tab_2;
@@ -222,10 +228,26 @@ public:
 
         verticalLayout_7->addLayout(horizontalLayout_2);
 
+        horizontalLayout_13 = new QHBoxLayout();
+        horizontalLayout_13->setSpacing(6);
+        horizontalLayout_13->setObjectName(QString::fromUtf8("horizontalLayout_13"));
+        main_scale = new QSlider(widget);
+        main_scale->setObjectName(QString::fromUtf8("main_scale"));
+        main_scale->setMaximum(10);
+        main_scale->setSingleStep(1);
+        main_scale->setPageStep(2);
+        main_scale->setValue(0);
+        main_scale->setOrientation(Qt::Vertical);
+
+        horizontalLayout_13->addWidget(main_scale);
+
         main_view = new QGraphicsView(widget);
         main_view->setObjectName(QString::fromUtf8("main_view"));
 
-        verticalLayout_7->addWidget(main_view);
+        horizontalLayout_13->addWidget(main_view);
+
+
+        verticalLayout_7->addLayout(horizontalLayout_13);
 
         splitter->addWidget(widget);
         tabWidget = new QTabWidget(splitter);
@@ -262,21 +284,48 @@ public:
 
         verticalLayout->addWidget(show_map_mask);
 
+        clear_all = new QPushButton(tab);
+        clear_all->setObjectName(QString::fromUtf8("clear_all"));
+        clear_all->setMaximumSize(QSize(16777215, 22));
+        QIcon icon1;
+        icon1.addFile(QString::fromUtf8(":/icons/icons/delete.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        clear_all->setIcon(icon1);
+
+        verticalLayout->addWidget(clear_all);
+
+        smoothing_2 = new QPushButton(tab);
+        smoothing_2->setObjectName(QString::fromUtf8("smoothing_2"));
+        smoothing_2->setMaximumSize(QSize(16777215, 22));
+
+        verticalLayout->addWidget(smoothing_2);
+
+        defragment = new QPushButton(tab);
+        defragment->setObjectName(QString::fromUtf8("defragment"));
+        defragment->setMaximumSize(QSize(16777215, 22));
+
+        verticalLayout->addWidget(defragment);
+
+        threshold = new QPushButton(tab);
+        threshold->setObjectName(QString::fromUtf8("threshold"));
+        threshold->setMaximumSize(QSize(16777215, 22));
+
+        verticalLayout->addWidget(threshold);
+
         dilation = new QPushButton(tab);
         dilation->setObjectName(QString::fromUtf8("dilation"));
         dilation->setMaximumSize(QSize(65535, 22));
-        QIcon icon1;
-        icon1.addFile(QString::fromUtf8(":/icons/icons/up.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        dilation->setIcon(icon1);
+        QIcon icon2;
+        icon2.addFile(QString::fromUtf8(":/icons/icons/up.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        dilation->setIcon(icon2);
 
         verticalLayout->addWidget(dilation);
 
         erosion = new QPushButton(tab);
         erosion->setObjectName(QString::fromUtf8("erosion"));
         erosion->setMaximumSize(QSize(65535, 22));
-        QIcon icon2;
-        icon2.addFile(QString::fromUtf8(":/icons/icons/down.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        erosion->setIcon(icon2);
+        QIcon icon3;
+        icon3.addFile(QString::fromUtf8(":/icons/icons/down.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        erosion->setIcon(icon3);
 
         verticalLayout->addWidget(erosion);
 
@@ -388,9 +437,9 @@ public:
         save_model = new QPushButton(groupBox);
         save_model->setObjectName(QString::fromUtf8("save_model"));
         save_model->setMaximumSize(QSize(70, 24));
-        QIcon icon3;
-        icon3.addFile(QString::fromUtf8(":/icons/icons/save.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        save_model->setIcon(icon3);
+        QIcon icon4;
+        icon4.addFile(QString::fromUtf8(":/icons/icons/save.xpm"), QSize(), QIcon::Normal, QIcon::Off);
+        save_model->setIcon(icon4);
 
         verticalLayout_11->addWidget(save_model);
 
@@ -406,9 +455,7 @@ public:
         sizePolicy3.setHeightForWidth(new_model->sizePolicy().hasHeightForWidth());
         new_model->setSizePolicy(sizePolicy3);
         new_model->setMaximumSize(QSize(70, 24));
-        QIcon icon4;
-        icon4.addFile(QString::fromUtf8(":/icons/icons/delete.xpm"), QSize(), QIcon::Normal, QIcon::Off);
-        new_model->setIcon(icon4);
+        new_model->setIcon(icon1);
 
         verticalLayout_11->addWidget(new_model);
 
@@ -471,7 +518,7 @@ public:
         scrollArea->setWidgetResizable(true);
         scrollAreaWidgetContents = new QWidget();
         scrollAreaWidgetContents->setObjectName(QString::fromUtf8("scrollAreaWidgetContents"));
-        scrollAreaWidgetContents->setGeometry(QRect(0, 0, 235, 200));
+        scrollAreaWidgetContents->setGeometry(QRect(0, 0, 348, 200));
         verticalLayout_6 = new QVBoxLayout(scrollAreaWidgetContents);
         verticalLayout_6->setSpacing(6);
         verticalLayout_6->setContentsMargins(11, 11, 11, 11);
@@ -698,7 +745,7 @@ public:
         save_reco_result = new QPushButton(tab_6);
         save_reco_result->setObjectName(QString::fromUtf8("save_reco_result"));
         save_reco_result->setMaximumSize(QSize(60, 24));
-        save_reco_result->setIcon(icon3);
+        save_reco_result->setIcon(icon4);
 
         horizontalLayout_8->addWidget(save_reco_result);
 
@@ -825,6 +872,10 @@ public:
         show_recog->setText(QApplication::translate("MainWindow", "Show recognition", 0, QApplication::UnicodeUTF8));
         result_edge->setText(QApplication::translate("MainWindow", "Edge", 0, QApplication::UnicodeUTF8));
         show_map_mask->setText(QApplication::translate("MainWindow", "Show mask", 0, QApplication::UnicodeUTF8));
+        clear_all->setText(QApplication::translate("MainWindow", "Clear all", 0, QApplication::UnicodeUTF8));
+        smoothing_2->setText(QApplication::translate("MainWindow", "Smoothing", 0, QApplication::UnicodeUTF8));
+        defragment->setText(QApplication::translate("MainWindow", "Defragment", 0, QApplication::UnicodeUTF8));
+        threshold->setText(QApplication::translate("MainWindow", "Threshold", 0, QApplication::UnicodeUTF8));
         dilation->setText(QApplication::translate("MainWindow", "Larger", 0, QApplication::UnicodeUTF8));
         erosion->setText(QApplication::translate("MainWindow", "Smaller", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("MainWindow", "Navigation window", 0, QApplication::UnicodeUTF8));

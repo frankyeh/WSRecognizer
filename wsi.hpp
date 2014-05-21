@@ -30,7 +30,7 @@ public:
     bool open(const char* file_name);
 public:
     boost::mutex read_image_mutex;
-    void read(image::color_image& main_image,unsigned int x,unsigned int y);
+    void read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level = 0);
 private:
     void run_block(unsigned char* running,unsigned int x,unsigned int y,unsigned int block_size,unsigned int extra_size,
                    bool* terminated);

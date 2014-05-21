@@ -47,7 +47,7 @@ int main(int ac, char *av[])
     QLibrary lib("libopenslide-0");
     if(!lib.load())
     {
-        QMessageBox::information(0,"Error","Cannot find open slide library",0);
+        std::cout << "Cannot load open slide library." << std::endl;
         return -1;
     }
     openslide_can_open = (openslide_can_open_type) lib.resolve("openslide_can_open");

@@ -115,11 +115,13 @@ bool wsi::open(const char* file_name)
     }
     return true;
 }
-void wsi::read(image::color_image& main_image,unsigned int x,unsigned int y)
+void wsi::read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level)
 {
     boost::mutex::scoped_lock lock(read_image_mutex);
-    openslide_read_region(handle,(uint32_t*)&*main_image.begin(),x,y,0,main_image.width(),main_image.height());
+    openslide_read_region(handle,(uint32_t*)&*main_image.begin(),x,y,level,main_image.width(),main_image.height());
 }
+
+
 void wsi::run_block(unsigned char* running,unsigned int x,unsigned int y,unsigned int block_size,unsigned int extra_size,
                     bool* terminated)
 {
@@ -337,12 +339,8 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
         image::divide_constant(feature_mapping,h*std::sqrt(2.0*3.1415926)*resolution_mm*resolution_mm/100.0);
     }
 
-    // add contour
     if(map_mask.empty())
         return;
-    image::grayscale_image map_contour;
-    image::morphology::edge(map_mask,map_contour);
-    image::scale(map_contour,contour);
     // calculate report
 
     max_value = *std::max_element(feature_mapping.begin(),feature_mapping.end());
@@ -370,13 +368,22 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
     q3_value = values[quantile];
 
 
+    // add contour
     // trim image
+    image::scale_nearest(map_mask,contour);
     image::geometry<2> from,to;
-    image::bounding_box(feature_mapping,from,to,0);
+    image::bounding_box(contour,from,to,0);
+    int border = (to[0]-from[0])*0.1;
+    from[0] = std::max<int>(0,from[0]-border);
+    from[1] = std::max<int>(0,from[1]-border);
+    to[0] = std::min<int>(contour.width()-1,to[0]+border);
+    to[1] = std::min<int>(contour.height()-1,to[1]+border);
     if (from[0] < to[0])
     {
         image::crop(feature_mapping,from,to);
         image::crop(contour,from,to);
     }
+    image::morphology::edge(contour);
+
 }
 

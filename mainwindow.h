@@ -93,6 +93,16 @@ private slots:
 
     void on_erosion_clicked();
 
+    void on_clear_all_clicked();
+
+    void on_threshold_clicked();
+
+    void on_smoothing_2_clicked();
+
+    void on_defragment_clicked();
+
+    void on_main_scale_sliderMoved(int position);
+
 public:
     Ui::MainWindow *ui;
 };

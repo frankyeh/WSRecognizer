@@ -15,7 +15,8 @@ win32-g++ {
 LIBS += -L. -lboost_thread-mgw45-mt-1_45.dll \
      -L. -lboost_program_options-mgw45-mt-1_45.dll \
 }
-INCLUDEPATH += C:/frank/myprog/include
+INCLUDEPATH += C:/frank/myprog/include\
+                plot
 SOURCES += main.cpp\
         mainwindow.cpp \
     wsi.cpp \

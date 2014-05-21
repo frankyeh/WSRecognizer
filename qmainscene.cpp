@@ -1,22 +1,38 @@
 #include <QGraphicsSceneMouseEvent>
+#include <QGraphicsView>
 #include <QPainter>
 #include "qmainscene.h"
 #include "qtrainscene.h"
 //#include "ui_mainwindow.h"
 #include "mainwindow.h"
 QMainScene::QMainScene(QObject *parent) :
-    QGraphicsScene(parent),show_edge(true)
+    QGraphicsScene(parent),show_edge(true),w(0),level(0)
 {
 }
 
 void QMainScene::clear_image(void)
 {
+    if(!w)
+        return;
+    result.clear();
+    update_image();
+}
+void QMainScene::move_to(unsigned int x_,unsigned int y_)
+{
+    if(!w)
+        return;
+    x = x_;
+    y = y_;
+    main_image.resize(image::geometry<2>(std::max(100,views()[0]->width()-20),std::max(100,views()[0]->height()-20)));
+    w->read(main_image,x,y,level);
     result.clear();
     update_image();
 }
 
 void QMainScene::update_image(void)
 {
+    if(!w)
+        return;
     QImage output_image;
     if(main_image.empty())
     {
@@ -56,10 +72,38 @@ void QMainScene::update_image(void)
     addRect(0, 0, output_image.width(),output_image.height(),QPen(),output_image);
 
 }
+void QMainScene::mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent )
+{
+    if(!w)
+        return;
+    moved = false;
+    lx = mouseEvent->scenePos().x();
+    ly = mouseEvent->scenePos().y();
+}
+
+void QMainScene::mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent )
+{
+    if(!w)
+        return;
+    moved = true;
+    float dx = mouseEvent->scenePos().x()-lx;
+    float dy = mouseEvent->scenePos().y()-ly;
+    if(level)
+    {
+        float ratio = w->dim[0]/w->dim_at_level[level][0];
+        dx *= ratio;
+        dy *= ratio;
+    }
+    move_to(x - dx,y - dy);
+    lx = mouseEvent->scenePos().x();
+    ly = mouseEvent->scenePos().y();
+}
 
 void QMainScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
-    if(main_image.empty())
+    if(!w)
+        return;
+    if(main_image.empty() || moved)
         return;
     float x = mouseEvent->scenePos().x();
     float y = mouseEvent->scenePos().y();
