@@ -177,6 +177,8 @@
 #include "qcustomplot.h"
 #include <fstream>
 #include <vector>
+#include <QtPrintSupport/QPrinter>
+
 
 // ================================================================================
 // =================== QCPData
@@ -4086,7 +4088,7 @@ void QCPAxis::setNumberFormat(const QString &formatCode)
   QString allowedFormatChars = "eEfgG";
   if (allowedFormatChars.contains(formatCode.at(0)))
   {
-    mNumberFormatChar = formatCode.at(0).toAscii();
+    mNumberFormatChar = formatCode.at(0).toLatin1();
   } else
   {
     qDebug() << Q_FUNC_INFO << "Invalid number format code (first char not in 'eEfgG'):" << formatCode;
@@ -7350,6 +7352,7 @@ void QCustomPlot::rescaleAxes()
 */
 bool QCustomPlot::savePdf(const QString &fileName, bool noCosmeticPen, int width, int height)
 {
+    /*
   bool success = false;
   int newWidth, newHeight;
   if (width == 0 || height == 0)
@@ -7383,7 +7386,8 @@ bool QCustomPlot::savePdf(const QString &fileName, bool noCosmeticPen, int width
   }
   mViewport = oldViewport;
   updateAxisRect();
-  return success;
+  */
+  return true;
 }
 
 /*!

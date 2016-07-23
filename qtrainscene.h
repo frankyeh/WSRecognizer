@@ -1,7 +1,7 @@
 #ifndef QTRAINSCENE_H
 #define QTRAINSCENE_H
 
-#include <QGraphicsScene>
+#include <QtWidgets/QGraphicsScene>
 #include "train_model.hpp"
 class QTrainScene : public QGraphicsScene
 {

@@ -1,5 +1,5 @@
-#include <QGraphicsSceneMouseEvent>
-#include <QGraphicsView>
+#include <QtWidgets/QGraphicsSceneMouseEvent>
+#include <QPainter>
 #include "qmapgraphicsscene.h"
 #include "qmainscene.h"
 
@@ -68,7 +68,7 @@ void QMapGraphicsScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEven
             paint.drawPolygon(&*qpoints.begin(),qpoints.size() - 1);
         }
         QImage draw_map = bitmap.scaled(w->map_mask.width(),w->map_mask.height());
-        for (image::pixel_index<2>index; index.is_valid(w->map_mask.geometry());index.next(w->map_mask.geometry()))
+        for (image::pixel_index<2>index(w->map_mask.geometry());index < w->map_mask.size();++index)
             if(QColor(draw_map.pixel(index.x(),index.y())).red() > 64)
             {
                 if(right_button)

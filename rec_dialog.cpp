@@ -1,5 +1,5 @@
-#include <QFileDialog>
-#include <QMessageBox>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QMessageBox>
 #include "rec_dialog.hpp"
 #include "ui_rec_dialog.h"
 #include "wsi.hpp"
@@ -116,10 +116,9 @@ void rec_dialog::show_run_progress()
     if(terminated)
     {
         disconnect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
-        thread->join();
+        future.wait();
         ui->run->setText("Run");
         ui->close->setEnabled(true);
-        thread.reset(0);
     }
     if(file_progress == file_list.size())
     {
@@ -130,9 +129,10 @@ void rec_dialog::show_run_progress()
 void rec_dialog::on_run_clicked()
 {
     // stop thread
-    if(thread.get())
+    if(future.valid())
     {
         terminated = true;
+        future.wait();
         return;
     }
 
@@ -148,7 +148,9 @@ void rec_dialog::on_run_clicked()
     }
     w.ml.smoothing = ui->smoothing->value();
     terminated = false;
-    thread.reset(new boost::thread(&rec_dialog::run_thread,this));
+    future = std::async(std::launch::async, [this](){
+        run_thread();
+    });
     timer.reset(new QTimer(this));
     connect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
     timer->start(500);

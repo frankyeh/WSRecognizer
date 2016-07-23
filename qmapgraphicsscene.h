@@ -1,7 +1,7 @@
 #ifndef QMAPGRAPHICSSCENE_H
 #define QMAPGRAPHICSSCENE_H
 
-#include <QGraphicsScene>
+#include <QtWidgets/QGraphicsScene>
 #include "wsi.hpp"
 class QMainScene;
 class QMapGraphicsScene : public QGraphicsScene

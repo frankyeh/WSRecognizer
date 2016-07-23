@@ -1,5 +1,5 @@
-#include <QFileDialog>
-#include <QMessageBox>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QMessageBox>
 #include "libs/prog_interface_static_link.h"
 #include "libs/gzip_interface.hpp"
 #include "gen_dialog.hpp"

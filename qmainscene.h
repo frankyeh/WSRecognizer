@@ -1,7 +1,7 @@
 #ifndef QMAINSCENE_H
 #define QMAINSCENE_H
 
-#include <QGraphicsScene>
+#include <QtWidgets/QGraphicsScene>
 #include "image/image.hpp"
 
 class MainWindow;

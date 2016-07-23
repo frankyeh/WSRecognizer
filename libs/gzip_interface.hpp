@@ -33,7 +33,7 @@ public:
             return handle;
         }
         in.open(file_name,std::ios::binary);
-        return in;
+        return in.good();
     }
     void read(void* buf,size_t size)
     {
@@ -71,8 +71,8 @@ public:
             in.close();
     }
 
-    operator bool() const	{return handle ? true:in;}
-    bool operator!() const	{return !(handle? true:in);}
+    operator bool() const	{return handle ? true:in.good();}
+    bool operator!() const	{return !(handle ? true:in.good());}
 };
 
 class gz_ostream{
@@ -104,7 +104,7 @@ public:
             return handle;
         }
         out.open(file_name,std::ios::binary);
-        return out;
+        return out.good();
     }
     void write(const void* buf,size_t size)
     {
@@ -130,8 +130,8 @@ public:
         if(out)
             out.close();
     }
-    operator bool() const	{return handle? true:out;}
-    bool operator!() const	{return !(handle? true:out);}
+    operator bool() const	{return handle? true:out.good();}
+    bool operator!() const	{return !(handle? true:out.good());}
 };
 
 

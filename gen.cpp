@@ -4,15 +4,14 @@
 #include <iterator>
 #include <string>
 #include "image/image.hpp"
-#include "boost/program_options.hpp"
 #include "wsi.hpp"
 #include "train_model.hpp"
 #include "libs/gzip_interface.hpp"
 extern image::color_image bar,colormap;
-namespace po = boost::program_options;
 
 int gen(int ac, char *av[])
 {
+    /*
     po::options_description rec_desc("recognition options");
     rec_desc.add_options()
     ("help", "help message")
@@ -108,5 +107,6 @@ int gen(int ac, char *av[])
         I.save(output_filename.c_str());
         return 0;
     }
+    */
     return 0;
 }

@@ -1,12 +1,8 @@
-#include <QApplication>
-#include <QMessageBox>
+#include <QtWidgets/QApplication>
 #include <QLibrary>
-#include <QCleanlooksStyle>
-#include "boost/program_options.hpp"
 #include "mainwindow.h"
 #include "openslide.h"
 
-namespace po = boost::program_options;
 
 int rec(int ac, char *av[]);
 int gen(int ac, char *av[]);
@@ -91,6 +87,7 @@ int main(int ac, char *av[])
             std::cout << "WS Recognizer " << __DATE__ << ", Fang-Cheng Yeh" << std::endl;
 
         // options for general options
+            /*
             po::options_description desc("options");
             desc.add_options()
             ("help", "help message")
@@ -115,11 +112,10 @@ int main(int ac, char *av[])
                 return rec(ac,av);
             if(vm["action"].as<std::string>() == std::string("gen"))
                 return gen(ac,av);
+                */
         }
         return 1;
     }
-
-    QApplication::setStyle(new QCleanlooksStyle);
     QApplication a(ac, av);
     a.setOrganizationName("LabSolver");
     a.setApplicationName("WS Recognizer");

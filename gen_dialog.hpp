@@ -1,7 +1,7 @@
 #ifndef GEN_DIALOG_HPP
 #define GEN_DIALOG_HPP
 
-#include <QDialog>
+#include <QtWidgets/QDialog>
 
 namespace Ui {
 class gen_dialog;

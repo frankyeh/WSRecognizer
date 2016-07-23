@@ -94,9 +94,9 @@ bool wsi::open(const char* file_name)
         }
         */
         image::morphology::defragment(map_mask);
-        image::negate(map_mask,1);
+        image::negate(map_mask);
         image::morphology::defragment(map_mask,0.001);
-        image::negate(map_mask,1);
+        image::negate(map_mask);
     }
 
     for(const char * const * str = openslide_get_property_names(handle);*str;++str)
@@ -117,41 +117,11 @@ bool wsi::open(const char* file_name)
 }
 void wsi::read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level)
 {
-    boost::mutex::scoped_lock lock(read_image_mutex);
+    std::lock_guard<std::mutex> lock(read_image_mutex);
     openslide_read_region(handle,(uint32_t*)&*main_image.begin(),x,y,level,main_image.width(),main_image.height());
 }
 
 
-void wsi::run_block(unsigned char* running,unsigned int x,unsigned int y,unsigned int block_size,unsigned int extra_size,
-                    bool* terminated)
-{
-    unsigned int image_size = block_size + extra_size + extra_size;
-    image::color_image I(image::geometry<2>(image_size,image_size));
-    read(I,x,y);
-    image::grayscale_image result;
-    ml.recognize(I,result,terminated);
-    if(*terminated)
-        return;
-    std::vector<image::vector<2> > pos;
-    std::vector<float> features;
-    ml.cca(result,pixel_size,extra_size,pos,features);
-    image::add_constant(pos,image::vector<2>(x,y));
-    {
-        boost::mutex::scoped_lock lock(read_image_mutex);
-        if(result_pos.empty())
-        {
-            result_pos.swap(pos);
-            result_features.swap(features);
-        }
-        else
-        {
-            result_pos.insert(result_pos.end(),pos.begin(),pos.end());
-            result_features.insert(result_features.end(),features.begin(),features.end());
-        }
-    }
-    if(running)
-        *running = 0;
-}
 
 void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int thread_count,bool* terminated)
 {
@@ -165,12 +135,23 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int threa
 
     {
         unsigned int image_size = block_size+extra_size+extra_size;
-        std::vector<unsigned char> thread_running(thread_count);
-        std::vector<boost::thread*> threads(thread_count);
+        std::vector<int> x_list,y_list;
         for(int y = 0;y < dim[1]-extra_size && !(*terminated);y += block_size)
         for(int x = 0;x < dim[0]-extra_size && !(*terminated);x += block_size)
         {
-            progress = 100*y/dim[1];
+            x_list.push_back(x);
+            y_list.push_back(y);
+        }
+
+        image::par_for2(x_list.size(),[&](int i,int id)
+        {
+            if(*terminated)
+                return;
+            int y = y_list[i];
+            int x = x_list[i];
+            if(id == 0)
+                progress = 100*y/dim[1];
+
             int map_x1 = std::min<int>((map_mask.width()-1)*(x)/(dim[0]-1),map_mask.width()-1);
             int map_x2 = std::min<int>((map_mask.width()-1)*(x+image_size)/(dim[0]-1),map_mask.width()-1);
             int map_y1 = std::min<int>((map_mask.height()-1)*(y)/(dim[1]-1),map_mask.height()-1);
@@ -179,29 +160,33 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int threa
             image::crop(map_mask,block_mask,image::vector<2>(map_x1,map_y1),
                                  image::vector<2>(map_x2,map_y2));
             if(*std::max_element(block_mask.begin(),block_mask.end()) == 0)
-                continue;
-            bool found = false;
-            do
-             for(unsigned int index = 0;index < threads.size();++index)
-                if(!thread_running[index])
-                {
-                    delete threads[index];
-                    thread_running[index] = 1;
-                    threads[index] = new boost::thread(&wsi::run_block,this,
-                        &thread_running[index],x,y,block_size,extra_size,terminated);
-                    found = true;
-                    break;
-                }
-                while(!found && !(*terminated));
-        }
-        for(unsigned int index = 0;index < threads.size();++index)
-        {
-            if(threads[index])
+                return;
+
+            unsigned int image_size = block_size + extra_size + extra_size;
+            image::color_image I(image::geometry<2>(image_size,image_size));
+            read(I,x,y);
+            image::grayscale_image result;
+            ml.recognize(I,result,terminated);
+            if(*terminated)
+                return;
+            std::vector<image::vector<2> > pos;
+            std::vector<float> features;
+            ml.cca(result,pixel_size,extra_size,pos,features);
+            image::add_constant(pos,image::vector<2>(x,y));
             {
-                threads[index]->join();
-                delete threads[index];
+                std::lock_guard<std::mutex> lock(read_image_mutex);
+                if(result_pos.empty())
+                {
+                    result_pos.swap(pos);
+                    result_features.swap(features);
+                }
+                else
+                {
+                    result_pos.insert(result_pos.end(),pos.begin(),pos.end());
+                    result_features.insert(result_features.end(),features.begin(),features.end());
+                }
             }
-        }
+        });
     }
     finished = true;
 
@@ -286,7 +271,7 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
                                  float resolution_mm,float band_width_mm,bool feature,
                                  float min_size,float max_size)
 {
-    boost::mutex::scoped_lock lock(read_image_mutex);
+    std::lock_guard<std::mutex> lock(read_image_mutex);
     image::geometry<2> output_geo;
     output_geo[0] = (float)dim[0]*pixel_size/resolution_mm;
     output_geo[1] = (float)dim[1]*pixel_size/resolution_mm;

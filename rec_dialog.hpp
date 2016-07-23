@@ -1,7 +1,7 @@
 #ifndef REC_DIALOG_HPP
 #define REC_DIALOG_HPP
-#include "boost/thread.hpp"
-#include <QDialog>
+#include <future>
+#include <QtWidgets/QDialog>
 #include <QTimer>
 #include "train_model.hpp"
 #include "wsi.hpp"
@@ -19,7 +19,7 @@ private:
     wsi w;
 private:
     unsigned int file_progress;
-    std::auto_ptr<boost::thread> thread;
+    std::future<void> future;
     std::auto_ptr<QTimer> timer;
     bool terminated;
     QStringList log;

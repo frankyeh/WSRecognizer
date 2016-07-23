@@ -1,6 +1,5 @@
 #ifndef WSI_HPP
 #define WSI_HPP
-#include <boost/thread.hpp>
 #include "image/image.hpp"
 #include <string>
 #include "train_model.hpp"
@@ -29,13 +28,10 @@ public:
     ~wsi();
     bool open(const char* file_name);
 public:
-    boost::mutex read_image_mutex;
+    std::mutex read_image_mutex;
     void read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level = 0);
-private:
-    void run_block(unsigned char* running,unsigned int x,unsigned int y,unsigned int block_size,unsigned int extra_size,
-                   bool* terminated);
 public:
-    boost::mutex add_data_mutex;
+    std::mutex add_data_mutex;
     train_model ml;
     std::vector<image::vector<2> > result_pos;
     std::vector<float> result_features;

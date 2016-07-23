@@ -1,4 +1,4 @@
-#include <QGraphicsSceneMouseEvent>
+#include <QtWidgets/QGraphicsSceneMouseEvent>
 #include <QPainter>
 #include "qtrainscene.h"
 
@@ -50,9 +50,9 @@ void QTrainScene::mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent )
     double dy = mouseEvent->scenePos().y()-mouseEvent->lastScenePos().y();
     double rr[9],tmp[9];
     image::rotation_y_matrix(-dx* 0.01,rr);
-    image::matrix::product(rr,ml.r,tmp,image::dyndim(3,3),image::dyndim(3,3));
+    image::mat::product(rr,ml.r,tmp,image::dyndim(3,3),image::dyndim(3,3));
     image::rotation_x_matrix(dy* 0.01,rr);
-    image::matrix::product(rr,tmp,ml.r,image::dyndim(3,3),image::dyndim(3,3));
+    image::mat::product(rr,tmp,ml.r,image::dyndim(3,3),image::dyndim(3,3));
     ml.update_classifier_map();
     update();
 }

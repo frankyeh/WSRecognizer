@@ -1,15 +1,13 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-#include <QGraphicsScene>
+#include <QtWidgets/qmainwindow.h>
 #include <QTimer>
 #include <QSettings>
 #include "qmapgraphicsscene.h"
 #include "qtrainscene.h"
 #include "qmainscene.h"
 #include "wsi.hpp"
-#include "boost/thread.hpp"
 namespace Ui {
 class MainWindow;
 }
@@ -25,7 +23,7 @@ private:
     QGraphicsScene info_scene,result_scene;
     image::color_image main_image;
 private:
-    std::auto_ptr<boost::thread> thread;
+    std::future<void> future;
     std::auto_ptr<QTimer> timer;
     bool terminated;
 private:
@@ -102,6 +100,8 @@ private slots:
     void on_defragment_clicked();
 
     void on_main_scale_sliderMoved(int position);
+
+    void on_actionOpen_image_triggered();
 
 public:
     Ui::MainWindow *ui;

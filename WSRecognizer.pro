@@ -4,18 +4,14 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
-
+QT       += core gui printsupport
+CONFIG += c++11
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = WSRecognizer
 TEMPLATE = app
 
-win32-g++ {
-LIBS += -L. -lboost_thread-mgw45-mt-1_45.dll \
-     -L. -lboost_program_options-mgw45-mt-1_45.dll \
-}
-INCLUDEPATH += C:/frank/myprog/include\
+INCLUDEPATH += ../include \
                 plot
 SOURCES += main.cpp\
         mainwindow.cpp \
@@ -43,9 +39,9 @@ SOURCES += main.cpp\
     libs/prog_interface.cpp \
     gen.cpp \
     rec_dialog.cpp \
-    ../../../include/image/ml/svm.cpp \
     gen_dialog.cpp \
-    plot/qcustomplot.cpp
+    plot/qcustomplot.cpp \
+    ../include/image/ml/svm.cpp
 
 HEADERS  += mainwindow.h \
     openslide-features.h \

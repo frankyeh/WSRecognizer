@@ -58,7 +58,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    if(thread.get())
+    if(future.valid())
         on_run_clicked();
     delete ui;
 }
@@ -164,20 +164,20 @@ void MainWindow::on_action_Open_triggered()
 
 void MainWindow::set_training_param()
 {
-    if(!train_scene.ml.is_trained() || !w.get())
+    if(!train_scene.ml.is_trained())
         return;
     train_scene.ml.smoothing = ui->smoothing->value();
 }
 
 void MainWindow::on_recognize_stains_clicked()
 {
-    if(!train_scene.ml.is_trained() || !w.get() || main_scene.main_image.empty())
+    if(!train_scene.ml.is_trained() || main_scene.main_image.empty())
         return;
     set_training_param();
     train_scene.ml.recognize(main_scene.main_image,main_scene.result);
     main_scene.result_pos.clear();
     main_scene.result_features.clear();
-    train_scene.ml.cca(main_scene.result,w->pixel_size,0,main_scene.result_pos,main_scene.result_features);
+    train_scene.ml.cca(main_scene.result,w.get() ? w->pixel_size : 1,0,main_scene.result_pos,main_scene.result_features);
     ui->show_recog->setChecked(true);
     main_scene.update_image();
 }
@@ -187,19 +187,18 @@ void MainWindow::on_run_clicked()
     if(!w.get())
         return;
     set_training_param();
-    if(thread.get())
+    if(future.valid())
     {
         disconnect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
         terminated = true;
-        thread->join();
+        future.wait();
         ui->progressBar->setValue(0);
         ui->run->setText("Run");
-        thread.reset(0);
         return;
     }
     terminated = false;
     w->ml = train_scene.ml;
-    thread.reset(new boost::thread(&wsi::run,w.get(),4000,200,ui->thread_count->value(),&terminated));
+    future = std::async(std::launch::async, [this](){w->run(4000,200,ui->thread_count->value(),&terminated);});
     timer.reset(new QTimer(this));
     connect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
     timer->start(1500);
@@ -213,7 +212,7 @@ void MainWindow::on_run_clicked()
 void MainWindow::show_run_progress(void)
 {
     ui->progressBar->setValue(w->progress);
-    if(thread.get() && w->finished)
+    if(future.valid() && w->finished)
         on_run_clicked();
     update_sdi();
     update_color_bar();
@@ -323,7 +322,7 @@ void MainWindow::update_color_bar(void)
                                       ui->color_min->value())->moveBy(right+25,256*i/5-3+shift);
         result_scene.addText(QString::number(ui->color_min->value()))->moveBy(right+25,256+shift);
         QGraphicsTextItem *unit_text = result_scene.addText("counts per 100 square micron");
-        unit_text->rotate(90);
+        unit_text->setRotation(270);
         unit_text->moveBy(right+65,64+shift);
         buttom = std::max<int>(buttom,275);
         result_scene.addPixmap(QPixmap::fromImage(
@@ -511,4 +510,27 @@ void MainWindow::on_main_scale_sliderMoved(int position)
 {
     main_scene.level = position;
     main_scene.move_to(main_scene.x,main_scene.y);
+}
+
+void MainWindow::on_actionOpen_image_triggered()
+{
+    QString filename = QFileDialog::getOpenFileName(
+                           this,
+                           "Open Image",work_path,"Image files (*.tif *.bmp *.jpg);;All files (*)");
+    if (filename.isEmpty())
+        return;
+    main_scene.result.clear();
+    train_scene.ml.clear();
+    train_scene.update();
+
+    QImage I;
+    if(!I.load(filename))
+    {
+        QMessageBox::information(this,"Error","Cannot open image file",0);
+        return;
+    }
+    QImage I2 = I.convertToFormat(QImage::Format_RGB32);
+    main_scene.main_image.resize(image::geometry<2>(I2.width(),I2.height()));
+    std::copy((const unsigned int*)I2.bits(),(const unsigned int*)I2.bits() + main_scene.main_image.size(),main_scene.main_image.begin());
+    main_scene.update_image();
 }

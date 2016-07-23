@@ -1,6 +1,5 @@
-#include <QGraphicsSceneMouseEvent>
-#include <QGraphicsView>
-#include <QPainter>
+#include <QtWidgets/QGraphicsView>
+#include <QtWidgets/QGraphicsSceneMouseEvent>
 #include "qmainscene.h"
 #include "qtrainscene.h"
 //#include "ui_mainwindow.h"
@@ -31,8 +30,6 @@ void QMainScene::move_to(unsigned int x_,unsigned int y_)
 
 void QMainScene::update_image(void)
 {
-    if(!w)
-        return;
     QImage output_image;
     if(main_image.empty())
     {
@@ -74,18 +71,18 @@ void QMainScene::update_image(void)
 }
 void QMainScene::mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
+    moved = false;
     if(!w)
         return;
-    moved = false;
     lx = mouseEvent->scenePos().x();
     ly = mouseEvent->scenePos().y();
 }
 
 void QMainScene::mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
+    moved = true;
     if(!w)
         return;
-    moved = true;
     float dx = mouseEvent->scenePos().x()-lx;
     float dy = mouseEvent->scenePos().y()-ly;
     if(level)
@@ -101,8 +98,6 @@ void QMainScene::mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 
 void QMainScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
-    if(!w)
-        return;
     if(main_image.empty() || moved)
         return;
     float x = mouseEvent->scenePos().x();

@@ -4,15 +4,14 @@
 #include <iterator>
 #include <string>
 #include "image/image.hpp"
-#include "boost/program_options.hpp"
 #include "wsi.hpp"
 #include "train_model.hpp"
 #include "libs/gzip_interface.hpp"
-namespace po = boost::program_options;
 
 
 int rec(int ac, char *av[])
 {
+    /*
     po::options_description rec_desc("recognition options");
     rec_desc.add_options()
     ("help", "help message")
@@ -118,7 +117,7 @@ int rec(int ac, char *av[])
     }
 
 
-
+    */
     return 0;
 }
 
