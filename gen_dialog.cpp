@@ -99,10 +99,15 @@ void gen_dialog::on_buttonBox_accepted()
         }
         if(ui->format->currentIndex() == 0)// tif
         {
-            QString output_file = file_list[index] + ".tif";
+            QString output_file = file_list[index] + ".jpg";
             QImage I((unsigned char*)&*sdi_image.begin(),sdi_image.width(),sdi_image.height(),QImage::Format_RGB32);
             I.save(output_file);
             continue;
+        }
+        if(w.is_tma)
+        {
+            QString output_file = file_list[index] + ".tma.txt";
+            w.save_tma_result(output_file.toStdString().c_str());
         }
     }
 }
