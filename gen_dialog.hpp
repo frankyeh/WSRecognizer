@@ -1,8 +1,6 @@
 #ifndef GEN_DIALOG_HPP
 #define GEN_DIALOG_HPP
-
 #include <QtWidgets/QDialog>
-
 namespace Ui {
 class gen_dialog;
 }
@@ -24,6 +22,7 @@ private slots:
     void on_clear_file_clicked();
 
     void on_buttonBox_accepted();
+
 
 private:
     Ui::gen_dialog *ui;
