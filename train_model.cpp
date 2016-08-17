@@ -79,30 +79,20 @@ void train_model::cca(const image::grayscale_image& result,
     std::vector<std::vector<unsigned int> > regions;
     image::morphology::connected_component_labeling(result,labels,regions);
     unsigned int upper_border = result.width()-border;
-    std::vector<image::vector<2,float> > center_of_mass(regions.size());
-    std::vector<image::vector<2,int> > max_pos(regions.size()),min_pos(regions.size());
-    std::fill(min_pos.begin(),min_pos.end(),image::vector<2,float>(result.geometry()[0],result.geometry()[1]));
-    for(image::pixel_index<2> index(result.geometry());index < result.size();++index)
-    {
-        size_t region_id = labels[index.index()]-1;
-        if (!result[index.index()] || regions[region_id].empty())
-            continue;
-        center_of_mass[region_id] += image::vector<2,float>(index);
-        max_pos[region_id][0] = std::max<int>(index[0],max_pos[region_id][0]);
-        max_pos[region_id][1] = std::max<int>(index[1],max_pos[region_id][1]);
-        min_pos[region_id][0] = std::min<int>(index[0],min_pos[region_id][0]);
-        min_pos[region_id][1] = std::min<int>(index[1],min_pos[region_id][1]);
-    }
+
+    std::vector<image::vector<2,float> > center_of_mass;
+    std::vector<int> size_x,size_y;
+    image::morphology::get_region_bounding_size(labels,regions,size_x,size_y);
+    image::morphology::get_region_center(labels,regions,center_of_mass);
+
 
     for(size_t index = 0;index < regions.size();++index)
+    if(!regions[index].empty())
     {
-        if(regions[index].empty())
-            continue;
-        center_of_mass[index] /= regions[index].size();
         if(center_of_mass[index][0] < border || center_of_mass[index][0] >= upper_border ||
            center_of_mass[index][1] < border || center_of_mass[index][1] >= upper_border)
             continue;
-        float feature_size = (max_pos[index][0]-min_pos[index][0]+(max_pos[index][1]-min_pos[index][1]))/2.0;
+        float feature_size = (size_x[index]+size_y[index])/2.0;
         if(border && feature_size > border)
             continue;
         feature_size *= pixel_size; // now in micron
