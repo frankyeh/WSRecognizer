@@ -52,14 +52,15 @@ void QMainScene::update_image(void)
             if(result[index])
                 annotated_image[index][2] = 255;
         output_image = QImage((unsigned char*)&*annotated_image.begin(),annotated_image.width(),annotated_image.height(),QImage::Format_RGB32);
-        /*
+
         QPainter paint(&output_image);
-        paint.setPen(Qt::red);
+        paint.setPen(Qt::blue);
         for(unsigned int index = 0;index < result_pos.size();++index)
+        if(result_features[index])
         {
             float r = result_features[index]/pixel_size;
             paint.drawEllipse(result_pos[index][0]-r/2.0,result_pos[index][1]-r/2.0,r,r);
-        }*/
+        }
     }
     else
         output_image = QImage((unsigned char*)&*main_image.begin(),main_image.width(),main_image.height(),QImage::Format_RGB32);

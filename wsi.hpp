@@ -15,6 +15,12 @@ public:
     std::vector<double> r_at_level;
     unsigned int level;
 public:
+    bool is_tma;
+    image::basic_image<int,2> tma_map;
+    std::vector<int> tma_result;
+    std::vector<int> tma_result_pos;
+    image::basic_image<int,2> tma_array;
+public:
     image::color_image map_image;
     image::grayscale_image map_mask;
 public:
@@ -32,14 +38,17 @@ public:
     void read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level = 0);
 public:
     std::mutex add_data_mutex;
+    bool is_adding_mutex;
     train_model ml;
     std::vector<image::vector<2> > result_pos;
     std::vector<float> result_features;
     unsigned int progress;
     bool finished;
+    void push_result(std::vector<image::vector<2> >& pos,std::vector<float>& features);
     void run(unsigned int block_size,unsigned int extra_size,
              unsigned int thread_count,bool* terminated);
     void save_recognition_result(const char* file_name);
+    void save_tma_result(const char* file_name);
     bool load_recognition_result(const char* file_name);
     bool load_text_reco_result(const char* file_name);
     void get_distribution_image(image::basic_image<float,2>& feature_mapping,
@@ -48,6 +57,7 @@ public:
                                 float min_size,float max_size);
     void get_result_txt(std::vector<std::string>& name,
                         std::vector<float>& value);
+
 public: // report
     float mean_value;
     float max_value;

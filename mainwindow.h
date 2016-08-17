@@ -34,7 +34,7 @@ private:
 private slots:
     void show_run_progress(void);
 private:
-    QString work_path,file_name;
+    QString work_path,file_name,reg_name;
     QSettings settings;
     enum { MaxRecentFiles = 10 };
     QAction *recentFileActs[MaxRecentFiles];
@@ -102,6 +102,8 @@ private slots:
     void on_main_scale_sliderMoved(int position);
 
     void on_actionOpen_image_triggered();
+
+    void on_pushButton_clicked();
 
 public:
     Ui::MainWindow *ui;
