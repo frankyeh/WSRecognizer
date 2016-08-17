@@ -110,7 +110,7 @@
         <item>
          <widget class="QLabel" name="label">
           <property name="text">
-           <string>Format</string>
+           <string>Image Output</string>
           </property>
          </widget>
         </item>
@@ -118,7 +118,7 @@
          <widget class="QComboBox" name="format">
           <item>
            <property name="text">
-            <string>TIF file</string>
+            <string>JPG file</string>
            </property>
           </item>
           <item>
@@ -271,6 +271,9 @@
         </item>
         <item>
          <widget class="QSpinBox" name="min_size">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>50</number>
           </property>
@@ -288,7 +291,7 @@
            <number>5</number>
           </property>
           <property name="value">
-           <number>100</number>
+           <number>10</number>
           </property>
          </widget>
         </item>
