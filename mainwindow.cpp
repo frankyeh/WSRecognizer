@@ -520,7 +520,7 @@ void MainWindow::on_threshold_clicked()
     if (!ok)
         return;
     w->map_mask = gray_image;
-    image::binary(w->map_mask,std::bind2nd (std::greater<unsigned char>(), threshold));
+    image::binary(w->map_mask,std::bind2nd (std::less<unsigned char>(), threshold));
         map_scene.update();
 }
 

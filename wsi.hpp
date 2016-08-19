@@ -33,6 +33,7 @@ public:
     wsi();
     ~wsi();
     bool open(const char* file_name);
+    void process_mask(void);
 public:
     std::mutex read_image_mutex;
     void read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level = 0);

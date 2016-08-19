@@ -68,170 +68,7 @@ bool wsi::open(const char* file_name)
 
         image::morphology::smoothing(map_mask);
         image::morphology::smoothing(map_mask);
-
-        // get the second region
-        /*
-        if(region_index == 1)
-        {
-            image::grayscale_image map_mask2(map_mask);
-            image::morphology::defragment(map_mask);
-            image::negate(map_mask,1);
-            image::morphology::defragment(map_mask,0.001);
-            image::negate(map_mask,1);
-            image::minus(map_mask2.begin(),map_mask2.end(),map_mask.begin());
-            map_mask = map_mask2;
-        }
-        */
-
-        // check if TMA
-        {
-            image::basic_image<unsigned int,2> labels;
-            std::vector<std::vector<unsigned int> > regions;
-            image::morphology::connected_component_labeling(map_mask,labels,regions);
-
-            {
-
-                std::vector<int> size_x,size_y;
-                image::morphology::get_region_bounding_size(labels,regions,size_x,size_y);
-
-                // remove none-circular region
-                for(int i = 0;i < regions.size();++i)
-                if(regions[i].size() && (size_x[i] < size_y[i]*0.5 || size_y[i] < size_x[i]*0.5))
-                    regions[i].clear();
-            }
-
-
-            unsigned int max_size = 1;
-            for(int i = 0;i < regions.size();++i)
-                if(regions[i].size() > max_size)
-                    max_size = regions[i].size();
-            unsigned int count = 0;
-            for(int i = 0;i < regions.size();++i)
-                if(regions[i].size() > max_size*0.5)
-                    ++count;
-            is_tma = (count > 10);
-            if(is_tma)
-            {
-                std::vector<unsigned int> id;
-                // select regions
-                for(int i = 0;i < regions.size();++i)
-                    if(regions[i].size() > max_size*0.5)
-                        id.push_back(i);
-                // calculate region center
-                std::vector<double> x,y;
-                for(int i = 0;i < id.size();++i)
-                    {
-                        int index = id[i];
-                        x.push_back(0);
-                        y.push_back(0);
-                        for(int j = 0;j < regions[index].size();++j)
-                        {
-                            x.back() += regions[index][j] % map_mask.width();
-                            y.back() += int(regions[index][j] / map_mask.width());
-                        }
-                        x.back() /= regions[index].size();
-                        y.back() /= regions[index].size();
-                    }
-                // build up region array
-                {
-                    std::vector<int> ix(id.size()),iy(id.size());
-                    std::vector<unsigned char> connected(id.size());
-                    connected[0] = 1;
-                    float avg_dis = 0;
-                    for(int total_connected = 1;total_connected < id.size();++total_connected)
-                    {
-                        int from = 0,next = 0;
-                        image::vector<2> dv;
-                        float dis = std::numeric_limits<float>::max();
-                        for(int i = 0;i < connected.size();++i)
-                            if(connected[i])
-                            for(int j = 0;j < connected.size();++j)
-                            if(!connected[j])
-                            {
-                                image::vector<2> d(x[j]-x[i],y[j]-y[i]);
-                                if(d.length() < dis)
-                                {
-                                    from = i;
-                                    next = j;
-                                    dis = d.length();
-                                    dv = d;
-                                }
-                            }
-                        if(avg_dis == 0)
-                            avg_dis = dis;
-                        else
-                        {
-                            if(dis < avg_dis*1.5)
-                            {
-                                avg_dis += dis;
-                                avg_dis *= 0.5;
-                            }
-                        }
-                        if(std::abs(dv[0]) > std::abs(dv[1]))
-                        {
-                            ix[next] = ix[from] + std::round(dv[0]/avg_dis);
-                            iy[next] = iy[from];
-                        }
-                        else
-                        {
-                            ix[next] = ix[from];
-                            iy[next] = iy[from] + std::round(dv[1]/avg_dis);
-                        }
-                        connected[next] = 1;
-
-                    }
-                    image::minus_constant(ix,*std::min_element(ix.begin(),ix.end()));
-                    image::minus_constant(iy,*std::min_element(iy.begin(),iy.end()));
-
-                    // sort regions
-                    std::vector<int> value(id.size());
-                    for(int i = 0;i < id.size();++i)
-                        value[i] = ix[i] + iy[i]*id.size();
-                    std::vector<unsigned int> order;
-                    image::get_sort_index(value,order);
-                    image::apply_sort_index(id,order);
-                    image::apply_sort_index(ix,order);
-                    image::apply_sort_index(iy,order);
-
-
-                    // construct the array map
-                    int w = *std::max_element(ix.begin(),ix.end()) + 1;
-                    int h = *std::max_element(iy.begin(),iy.end()) + 1;
-                    tma_array.resize(image::geometry<2>(w,h));
-                    tma_result.resize(id.size());
-                    tma_result_pos.resize(id.size());
-                    for(int i = 0;i < id.size();++i)
-                    {
-                        int pos = ix[i] + iy[i]*w;
-                        tma_result_pos[i] = pos;
-                        tma_array[pos] = i+1;
-                    }
-                }
-
-
-                std::fill(map_mask.begin(),map_mask.end(),0);
-                tma_map.resize(map_mask.geometry());
-                for(int i = 0;i < id.size();++i)
-                {
-                    int index = id[i];
-                    for(int j = 0;j < regions[index].size();++j)
-                    {
-                        tma_map[regions[index][j]] = i+1;
-                        map_mask[regions[index][j]] = 1;
-                    }
-                }
-            }
-            else
-            {
-                image::morphology::defragment(map_mask);
-                image::negate(map_mask);
-                image::morphology::defragment(map_mask,0.001);
-                image::negate(map_mask);
-            }
-        }
-
     }
-
     for(const char * const * str = openslide_get_property_names(handle);*str;++str)
     {
         property_name.push_back(*str);
@@ -246,7 +83,152 @@ bool wsi::open(const char* file_name)
         associated_image.back().resize(image::geometry<2>(w,h));
         openslide_read_associated_image(handle,*str,(uint32_t*)&*associated_image.back().begin());
     }
+    process_mask();
     return true;
+}
+void wsi::process_mask(void)
+{
+    image::basic_image<unsigned int,2> labels;
+    std::vector<std::vector<unsigned int> > regions;
+    image::morphology::connected_component_labeling(map_mask,labels,regions);
+
+    {
+        std::vector<int> size_x,size_y;
+        image::morphology::get_region_bounding_size(labels,regions,size_x,size_y);
+
+        // remove none-circular region
+        for(int i = 0;i < regions.size();++i)
+        if(regions[i].size() && (size_x[i] < size_y[i]*0.5 || size_y[i] < size_x[i]*0.5))
+            regions[i].clear();
+    }
+
+    unsigned int max_size = 1;
+    for(int i = 0;i < regions.size();++i)
+        if(regions[i].size() > max_size)
+            max_size = regions[i].size();
+    unsigned int count = 0;
+    for(int i = 0;i < regions.size();++i)
+        if(regions[i].size() > max_size*0.5)
+            ++count;
+    is_tma = (count > 10);
+    if(is_tma)
+    {
+        std::vector<unsigned int> id;
+        // select regions
+        for(int i = 0;i < regions.size();++i)
+            if(regions[i].size() > max_size*0.5)
+                id.push_back(i);
+        // calculate region center
+        std::vector<double> x,y;
+        for(int i = 0;i < id.size();++i)
+            {
+                int index = id[i];
+                x.push_back(0);
+                y.push_back(0);
+                for(int j = 0;j < regions[index].size();++j)
+                {
+                    x.back() += regions[index][j] % map_mask.width();
+                    y.back() += int(regions[index][j] / map_mask.width());
+                }
+                x.back() /= regions[index].size();
+                y.back() /= regions[index].size();
+            }
+        // build up region array
+        {
+            std::vector<int> ix(id.size()),iy(id.size());
+            std::vector<unsigned char> connected(id.size());
+            connected[0] = 1;
+            float avg_dis = 0;
+            for(int total_connected = 1;total_connected < id.size();++total_connected)
+            {
+                int from = 0,next = 0;
+                image::vector<2> dv;
+                float dis = std::numeric_limits<float>::max();
+                for(int i = 0;i < connected.size();++i)
+                    if(connected[i])
+                    for(int j = 0;j < connected.size();++j)
+                    if(!connected[j])
+                    {
+                        image::vector<2> d(x[j]-x[i],y[j]-y[i]);
+                        if(d.length() < dis)
+                        {
+                            from = i;
+                            next = j;
+                            dis = d.length();
+                            dv = d;
+                        }
+                    }
+                if(avg_dis == 0)
+                    avg_dis = dis;
+                else
+                {
+                    if(dis < avg_dis*1.5)
+                    {
+                        avg_dis += dis;
+                        avg_dis *= 0.5;
+                    }
+                }
+                if(std::abs(dv[0]) > std::abs(dv[1]))
+                {
+                    ix[next] = ix[from] + std::round(dv[0]/avg_dis);
+                    iy[next] = iy[from];
+                }
+                else
+                {
+                    ix[next] = ix[from];
+                    iy[next] = iy[from] + std::round(dv[1]/avg_dis);
+                }
+                connected[next] = 1;
+
+            }
+            image::minus_constant(ix,*std::min_element(ix.begin(),ix.end()));
+            image::minus_constant(iy,*std::min_element(iy.begin(),iy.end()));
+
+            // sort regions
+            std::vector<int> value(id.size());
+            for(int i = 0;i < id.size();++i)
+                value[i] = ix[i] + iy[i]*id.size();
+            std::vector<unsigned int> order;
+            image::get_sort_index(value,order);
+            image::apply_sort_index(id,order);
+            image::apply_sort_index(ix,order);
+            image::apply_sort_index(iy,order);
+
+
+            // construct the array map
+            int w = *std::max_element(ix.begin(),ix.end()) + 1;
+            int h = *std::max_element(iy.begin(),iy.end()) + 1;
+            tma_array.resize(image::geometry<2>(w,h));
+            tma_result.resize(id.size());
+            tma_result_pos.resize(id.size());
+            for(int i = 0;i < id.size();++i)
+            {
+                int pos = ix[i] + iy[i]*w;
+                tma_result_pos[i] = pos;
+                tma_array[pos] = i+1;
+            }
+        }
+
+
+        std::fill(map_mask.begin(),map_mask.end(),0);
+        tma_map.resize(map_mask.geometry());
+        for(int i = 0;i < id.size();++i)
+        {
+            int index = id[i];
+            for(int j = 0;j < regions[index].size();++j)
+            {
+                tma_map[regions[index][j]] = i+1;
+                map_mask[regions[index][j]] = 1;
+            }
+        }
+    }
+    else
+    {
+        image::morphology::defragment(map_mask);
+        image::negate(map_mask);
+        image::morphology::defragment(map_mask,0.001);
+        image::negate(map_mask);
+    }
 }
 void wsi::read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level)
 {
@@ -400,6 +382,7 @@ bool wsi::load_recognition_result(const char* file_name)
         map_mask.resize(image::geometry<2>(rows,cols));
         std::copy(mask,mask+map_mask.size(),map_mask.begin());
     }
+    process_mask();
     return true;
 }
 

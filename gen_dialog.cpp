@@ -95,14 +95,12 @@ void gen_dialog::on_buttonBox_accepted()
             QString output_file = file_list[index] + ".mat";
             image::io::mat_write mat(output_file.toLocal8Bit().begin());
             mat << sdi_value;
-            continue;
         }
         if(ui->format->currentIndex() == 0)// tif
         {
             QString output_file = file_list[index] + ".jpg";
             QImage I((unsigned char*)&*sdi_image.begin(),sdi_image.width(),sdi_image.height(),QImage::Format_RGB32);
             I.save(output_file);
-            continue;
         }
         if(w.is_tma)
         {
