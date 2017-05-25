@@ -105,6 +105,9 @@ private slots:
 
     void on_pushButton_clicked();
 
+    void on_tma_feature_currentIndexChanged(int index);
+
+
 public:
     Ui::MainWindow *ui;
 };

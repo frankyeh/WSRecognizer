@@ -4,6 +4,8 @@
 #include <string>
 #include "train_model.hpp"
 typedef struct _openslide openslide_t;
+const unsigned int tma_feature_count = 3;
+const char tma_feature_list[tma_feature_count][10] = {"count","area","intensity"};
 
 class wsi
 {
@@ -17,9 +19,10 @@ public:
 public:
     bool is_tma;
     image::basic_image<int,2> tma_map;
-    std::vector<int> tma_result;
-    std::vector<int> tma_result_pos;
     image::basic_image<int,2> tma_array;
+public:
+    std::vector<std::vector<float> > tma_results;
+
 public:
     image::color_image map_image;
     image::grayscale_image map_mask;
@@ -41,15 +44,14 @@ public:
     std::mutex add_data_mutex;
     bool is_adding_mutex;
     train_model ml;
-    std::vector<image::vector<2> > result_pos;
-    std::vector<float> result_features;
+    std::vector<std::vector<float> > result_features;
     unsigned int progress;
     bool finished;
-    void push_result(std::vector<image::vector<2> >& pos,std::vector<float>& features);
+    void push_result(std::vector<std::vector<float> >& features);
     void run(unsigned int block_size,unsigned int extra_size,
              unsigned int thread_count,bool* terminated);
     void save_recognition_result(const char* file_name);
-    void save_tma_result(const char* file_name);
+    void save_tma_result(const char* file_name,bool label_on_right);
     bool load_recognition_result(const char* file_name);
     bool load_text_reco_result(const char* file_name);
     void get_distribution_image(image::basic_image<float,2>& feature_mapping,

@@ -113,7 +113,7 @@ int rec(int ac, char *av[])
         }
         mat.write("x",&*pos_x.begin(),1,pos_x.size());
         mat.write("y",&*pos_y.begin(),1,pos_x.size());
-        mat.write("length",&*w.result_features.begin(),1,w.result_features.size());
+        mat.write("length",&*w.result_span.begin(),1,w.result_span.size());
     }
 
 

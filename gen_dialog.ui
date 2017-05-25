@@ -197,6 +197,13 @@
             <number>0</number>
            </property>
            <item>
+            <widget class="QCheckBox" name="label_on_right">
+             <property name="text">
+              <string>Label on right</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="horizontalSpacer_2">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -249,6 +256,13 @@
         <property name="spacing">
          <number>0</number>
         </property>
+        <item>
+         <widget class="QCheckBox" name="contour">
+          <property name="text">
+           <string>Add contour</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <spacer name="horizontalSpacer">
           <property name="orientation">
@@ -303,13 +317,6 @@
          </widget>
         </item>
        </layout>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="contour">
-        <property name="text">
-         <string>Add contour</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </widget>

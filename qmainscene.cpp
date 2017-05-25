@@ -19,7 +19,11 @@ void QMainScene::clear_image(void)
 void QMainScene::move_to(unsigned int x_,unsigned int y_)
 {
     if(!w)
+    {
+        if(!main_image.empty()) // if single image is loaded
+            update_image();
         return;
+    }
     x = x_;
     y = y_;
     main_image.resize(image::geometry<2>(std::max(100,views()[0]->width()-20),std::max(100,views()[0]->height()-20)));
@@ -55,15 +59,18 @@ void QMainScene::update_image(void)
 
         QPainter paint(&output_image);
         paint.setPen(Qt::blue);
-        for(unsigned int index = 0;index < result_pos.size();++index)
-        if(result_features[index])
+        for(unsigned int index = 0;index < result_features.size();++index)
+        if(result_features[index][target::span] > 0) // size not 0
         {
-            float r = result_features[index]/pixel_size;
-            paint.drawEllipse(result_pos[index][0]-r/2.0,result_pos[index][1]-r/2.0,r,r);
+            float r = result_features[index][target::span]/pixel_size;
+            paint.drawEllipse(result_features[index][target::pos_x]-r/2.0,result_features[index][target::pos_y]-r/2.0,r,r);
         }
     }
     else
         output_image = QImage((unsigned char*)&*main_image.begin(),main_image.width(),main_image.height(),QImage::Format_RGB32);
+
+    if(!w)
+        output_image = output_image.scaled(output_image.width()*(level+1),output_image.height()*(level+1));
     setSceneRect(0, 0, output_image.width(),output_image.height());
     clear();
     setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -103,6 +110,11 @@ void QMainScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent )
         return;
     float x = mouseEvent->scenePos().x();
     float y = mouseEvent->scenePos().y();
+    if(!w) // if single image is loaded
+    {
+        x /= level+1;
+        y /= level+1;
+    }
     std::vector<image::rgb_color> pixels;
     image::get_window(image::pixel_index<2>(x,y,main_image.geometry()),main_image,pixels);
     for(unsigned int index = 0;index < pixels.size();++index)

@@ -19,6 +19,10 @@ MainWindow::MainWindow(QWidget *parent) :
     map_scene(main_scene)
 {
     ui->setupUi(this);
+    ui->tma_feature->clear();
+    for(int i = 2;i < feature_count;++i)
+        ui->tma_feature->addItem(feature_list[i]);
+
     ui->graphicsView->setScene(&map_scene);
     ui->info_view->setScene(&info_scene);
     ui->main_view->setScene(&main_scene);
@@ -102,6 +106,11 @@ void MainWindow::openFile(QString filename)
         QMessageBox::information(this,"error","Cannot open file",0);
         return;
     }
+
+    ui->NavigationWidget->show();
+    ui->result_widget->setTabEnabled(0,true);
+    ui->result_widget->setTabEnabled(1,true);
+
     w.reset(new_w.release());
     main_scene.w = w.get();
     map_scene.w = w.get();
@@ -131,6 +140,7 @@ void MainWindow::openFile(QString filename)
 
 
     work_path = QFileInfo(filename).absolutePath();
+    QDir::setCurrent(work_path);
     file_name = filename;
     setWindowTitle(file_name);
     // update recent file list
@@ -160,6 +170,8 @@ void MainWindow::on_action_Open_triggered()
                            "Open WSI",work_path,"WSI files (*.svs *.tif *.vms *.vmu *.scn *.mrxs *.ndpi);;All files (*)");
     if (filename.isEmpty())
         return;
+
+
     openFile(filename);
 }
 
@@ -168,6 +180,9 @@ void MainWindow::set_training_param()
     if(!train_scene.ml.is_trained())
         return;
     train_scene.ml.smoothing = ui->smoothing->value();
+    train_scene.ml.min_size = ui->min_size->value();
+    train_scene.ml.max_size = ui->max_size->value();
+
 }
 
 void MainWindow::on_recognize_stains_clicked()
@@ -176,13 +191,16 @@ void MainWindow::on_recognize_stains_clicked()
         return;
     set_training_param();
     train_scene.ml.recognize(main_scene.main_image,main_scene.result);
-    main_scene.result_pos.clear();
     main_scene.result_features.clear();
-    train_scene.ml.cca(main_scene.result,w.get() ? w->pixel_size : 1,0,main_scene.result_pos,main_scene.result_features);
+    train_scene.ml.cca(main_scene.main_image,main_scene.result,w.get() ? w->pixel_size : 1,0,main_scene.result_features);
+    unsigned int count = 0;
     for(int i = 0;i < main_scene.result_features.size();++i)
-        if(main_scene.result_features[i] < ui->min_size->value() ||
-           main_scene.result_features[i] > ui->max_size->value())
-            main_scene.result_features[i] = 0;
+        if(main_scene.result_features[i][target::span] < ui->min_size->value() ||
+           main_scene.result_features[i][target::span] > ui->max_size->value())
+            main_scene.result_features[i][target::span] = 0;
+        else
+            ++count;
+    ui->Test_result->setText(QString("%1 targets recognized").arg(count));
     ui->show_recog->setChecked(true);
     main_scene.update_image();
 }
@@ -261,9 +279,12 @@ void MainWindow::update_sdi(void)
             ui->tma_table->setColumnWidth(i,50);
         for(int i = 0,index = 0;i < w->tma_array.height();++i)
             for(int j = 0;j < w->tma_array.width();++j,++index)
-                ui->tma_table->setItem(i,j,new QTableWidgetItem(w->tma_array[index] ?
-                                                                QString::number(w->tma_result[w->tma_array[index]-1]):
+            {
+                int m = ui->label_on_right->isChecked() ? w->tma_array.size() - index -1 : index;
+                ui->tma_table->setItem(i,j,new QTableWidgetItem(w->tma_array[m] ?
+                                                                QString::number(w->tma_results[w->tma_array[m]-1][ui->tma_feature->currentIndex()]):
                                                                 QString(" ")));
+            }
     }
 }
 
@@ -366,19 +387,21 @@ void MainWindow::on_show_map_mask_toggled(bool checked)
 
 void MainWindow::on_save_reco_result_clicked()
 {
-    if(!w.get() || w->result_pos.empty())
+    if(!w.get() || w->result_features.empty())
         return;
     QString filename = QFileDialog::getSaveFileName(
-                           this,"Save results",QFileInfo(file_name).baseName() + reg_name + ".jpg","Image file (*.jpg *.png);;MAT file (*.mat);;text files (*.txt);;All files (*)");
+                           this,"Save results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".jpg","Image file (*.jpg *.png);;MAT file (*.mat);;text files (*.txt);;All files (*)");
     if (filename.isEmpty())
         return;
     if(QFileInfo(filename).suffix() == "txt")
     {
         std::ofstream out(filename.toLocal8Bit().begin());
-        for(unsigned int index = 0;index < w->result_pos.size();++index)
+        for(unsigned int index = 0;index < w->result_features.size();++index)
         {
-            out << w->result_pos[index][0] << " " << w->result_pos[index][1] << " "
-                << w->result_features[index] << std::endl;
+            std::copy(w->result_features[index].begin(),
+                      w->result_features[index].end(),
+                      std::ostream_iterator<float>(out," "));
+            out << std::endl;
         }
         return;
     }
@@ -401,7 +424,7 @@ void MainWindow::on_open_reco_result_clicked()
         return;
     QString filename = QFileDialog::getOpenFileName(
                            this,
-                           "Save image",QFileInfo(file_name).baseName() + reg_name + ".txt","text files (*.txt);;All files (*)");
+                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","text files (*.txt);;All files (*)");
     if (filename.isEmpty())
         return;
     w->load_text_reco_result(filename.toLocal8Bit().begin());
@@ -430,7 +453,7 @@ void MainWindow::on_open_model_clicked()
 {
     QString filename = QFileDialog::getOpenFileName(
                            this,
-                           "Open image",QFileInfo(file_name).baseName() + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
+                           "Open image",work_path + "//"+ QFileInfo(file_name).baseName() + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
     if (filename.isEmpty())
         return;
     if(!train_scene.ml.load_from_file(filename.toLocal8Bit().begin()))
@@ -440,17 +463,18 @@ void MainWindow::on_open_model_clicked()
     }
     reg_name = QFileInfo(filename).baseName();
     ui->smoothing->setValue(train_scene.ml.smoothing);
+    ui->min_size->setValue(train_scene.ml.min_size);
+    ui->max_size->setValue(train_scene.ml.max_size);
 }
 
 void MainWindow::on_save_model_clicked()
 {
-    if(!w.get())
-        return;
     QString filename = QFileDialog::getSaveFileName(
                            this,
-                           "Save image",QFileInfo(file_name).baseName() + reg_name + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
+                           "Save image",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
     if (filename.isEmpty())
         return;
+    set_training_param();
     train_scene.ml.save_to_file(filename.toLocal8Bit().begin());
 }
 
@@ -529,6 +553,7 @@ void MainWindow::on_main_scale_sliderMoved(int position)
 {
     main_scene.level = position;
     main_scene.move_to(main_scene.x,main_scene.y);
+
 }
 
 void MainWindow::on_actionOpen_image_triggered()
@@ -539,8 +564,6 @@ void MainWindow::on_actionOpen_image_triggered()
     if (filename.isEmpty())
         return;
     main_scene.result.clear();
-    train_scene.ml.clear();
-    train_scene.update();
 
     QImage I;
     if(!I.load(filename))
@@ -548,7 +571,16 @@ void MainWindow::on_actionOpen_image_triggered()
         QMessageBox::information(this,"Error","Cannot open image file",0);
         return;
     }
+    ui->main_scale->setMaximum(10);
+    ui->main_scale->setValue(0);
+    ui->NavigationWidget->hide();
+    ui->result_widget->setTabEnabled(0,false);
+    ui->result_widget->setTabEnabled(1,false);
+    ui->result_widget->setTabEnabled(2,false);
+
+
     QImage I2 = I.convertToFormat(QImage::Format_RGB32);
+    main_scene.level = ui->main_scale->value();
     main_scene.main_image.resize(image::geometry<2>(I2.width(),I2.height()));
     std::copy((const unsigned int*)I2.bits(),(const unsigned int*)I2.bits() + main_scene.main_image.size(),main_scene.main_image.begin());
     main_scene.update_image();
@@ -561,5 +593,14 @@ void MainWindow::on_pushButton_clicked()
                            "Save as",QFileInfo(file_name).baseName() + reg_name + ".tma.txt","Text files (*.txt);;All files (*)");
     if (filename.isEmpty())
         return;
-    w->save_tma_result(filename.toStdString().c_str());
+    w->save_tma_result(filename.toStdString().c_str(),ui->label_on_right->isChecked());
 }
+
+void MainWindow::on_tma_feature_currentIndexChanged(int index)
+{
+    if(!w.get())
+        return;
+    update_sdi();
+}
+
+

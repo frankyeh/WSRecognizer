@@ -22,8 +22,7 @@ public:
 public:
     bool show_edge;
     image::grayscale_image result;
-    std::vector<image::vector<2> > result_pos;
-    std::vector<float> result_features;
+    std::vector<std::vector<float> > result_features;
     void move_to(unsigned int x_,unsigned int y_);
 protected:
     bool moved;

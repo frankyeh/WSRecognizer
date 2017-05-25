@@ -58,6 +58,10 @@ void rec_dialog::on_open_model_file_clicked()
     model_name = QFileInfo(filename).baseName();
     ui->classification_label->setText(QString("Classification Model: ")+model_name);
     ui->smoothing->setValue(w.ml.smoothing);
+    ui->min_size->setValue(w.ml.min_size);
+    ui->max_size->setValue(w.ml.max_size);
+
+
 }
 
 void rec_dialog::add_log(QString text)
@@ -88,13 +92,13 @@ void rec_dialog::run_thread(void)
 
         w.run(4000,200,ui->thread->value(),&terminated);
         add_log("recognition completed.");
-        if(w.result_pos.empty())
+        if(w.result_features.empty())
         {
             add_log("No target recognized. Process aborted. Please check the training data?");
             continue;
         }
 
-        add_log(QString("A total of ") + QString::number(w.result_pos.size()) + " targets identified");
+        add_log(QString("A total of ") + QString::number(w.result_features.size()) + " targets identified");
 
         std::string output_name = file_list[file_progress].toLocal8Bit().begin();
         output_name += ".";

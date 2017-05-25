@@ -199,13 +199,12 @@ void wsi::process_mask(void)
             int w = *std::max_element(ix.begin(),ix.end()) + 1;
             int h = *std::max_element(iy.begin(),iy.end()) + 1;
             tma_array.resize(image::geometry<2>(w,h));
-            tma_result.resize(id.size());
-            tma_result_pos.resize(id.size());
+            tma_results.resize(id.size());
             for(int i = 0;i < id.size();++i)
             {
                 int pos = ix[i] + iy[i]*w;
-                tma_result_pos[i] = pos;
                 tma_array[pos] = i+1;
+                tma_results[i].resize(tma_feature_count);
             }
         }
 
@@ -236,13 +235,11 @@ void wsi::read(image::color_image& main_image,unsigned int x,unsigned int y,unsi
     openslide_read_region(handle,(uint32_t*)&*main_image.begin(),x,y,level,main_image.width(),main_image.height());
 }
 
-void wsi::push_result(std::vector<image::vector<2> >& pos,std::vector<float>& features)
+void wsi::push_result(std::vector<std::vector<float> >& features)
 {
     std::lock_guard<std::mutex> lock(add_data_mutex);
     is_adding_mutex = true;
-    result_pos.insert(result_pos.end(),pos.begin(),pos.end());
     result_features.insert(result_features.end(),features.begin(),features.end());
-    pos.clear();
     features.clear();
     is_adding_mutex = false;
 }
@@ -253,7 +250,6 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int threa
         thread_count = 1;
 
     ml.predict(0);// ensure that the features are learned to prevent multithread conflict
-    result_pos.clear();
     result_features.clear();
     is_adding_mutex = false;
 
@@ -267,8 +263,7 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int threa
             y_list.push_back(y);
         }
 
-        std::vector<std::vector<image::vector<2> > > pos(thread_count);
-        std::vector<std::vector<float> > features(thread_count);
+        std::vector<std::vector<std::vector<float> > > features(thread_count);
 
         image::par_for2(x_list.size(),[&](int i,int id)
         {
@@ -296,15 +291,19 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int threa
             ml.recognize(I,result,terminated);
             if(*terminated)
                 return;
-            unsigned int pos_size = pos[id].size();
-            ml.cca(result,pixel_size,extra_size,pos[id],features[id]);
-            image::add_constant(pos[id].begin()+pos_size,pos[id].end(),image::vector<2>(x,y));
-            if(!is_adding_mutex && pos[id].size() > 2000)
-                push_result(pos[id],features[id]);
+            unsigned int pos_size = features[id].size();
+            ml.cca(I,result,pixel_size,extra_size,features[id]);
+            for(int j = pos_size;j < features[id].size();++j)
+            {
+                features[id][j][target::pos_x] += x;
+                features[id][j][target::pos_y] += y;
+            }
+            if(!is_adding_mutex && features[id].size() > 2000)
+                push_result(features[id]);
 
         },thread_count);
         for(int id = 0;id < thread_count;++id)
-            push_result(pos[id],features[id]);
+            push_result(features[id]);
     }
 
     finished = true;
@@ -315,34 +314,36 @@ void wsi::save_recognition_result(const char* file_name)
     gz_mat_write mat(file_name);
     mat.write("dimension",&*dim.begin(),1,2);
     mat.write("pixel_size",&pixel_size,1,1);
-    std::vector<float> pos_x(result_pos.size()),pos_y(result_pos.size());
-    for(unsigned int index = 0;index < result_pos.size();++index)
+    for(int i = 0;i < feature_count;++i)
     {
-        pos_x[index] = result_pos[index][0];
-        pos_y[index] = result_pos[index][1];
+        std::vector<float> data(result_features.size());
+        for(unsigned int j = 0;j < result_features.size();++j)
+            data[j] = result_features[j][i];
+        mat.write(feature_list[i],&*data.begin(),1,data.size());
     }
-    mat.write("x",&*pos_x.begin(),1,pos_x.size());
-    mat.write("y",&*pos_y.begin(),1,pos_x.size());
-    mat.write("length",&*result_features.begin(),1,result_features.size());
     mat.write("mask",&*map_mask.begin(),map_mask.width(),map_mask.height());
 }
-void wsi::save_tma_result(const char* file_name)
+void wsi::save_tma_result(const char* file_name,bool label_on_right)
 {
     std::ofstream out(file_name);
-    for(int i = 0,index = 0;i < tma_array.height();++i)
+    for(int m = 0;m < tma_feature_count;++m)
     {
-        for(int j = 0;j < tma_array.width();++j,++index)
+        out << tma_feature_list[m] << std::endl;
+        for(int i = 0,index = 0;i < tma_array.height();++i)
         {
-            if(j)
-                out << ", ";
-            int id = tma_array[index];
-            if(id)
+            for(int j = 0;j < tma_array.width();++j,++index)
             {
-                --id;
-                out << tma_result[id];
+                if(j)
+                    out << ", ";
+                int id = tma_array[label_on_right ? tma_array.size() -1 - index : index];
+                if(id)
+                {
+                    --id;
+                    out << tma_results[id][m];
+                }
             }
+            out << std::endl;
         }
-        out << std::endl;
     }
 }
 
@@ -353,29 +354,31 @@ bool wsi::load_recognition_result(const char* file_name)
         return false;
     unsigned int rows,cols,cols2;
     const int* dim_ptr = 0;
-    const float* x = 0;
-    const float* y = 0;
     const float* pixel_size_ptr = 0;
-    const float* length = 0;
     if(!mat.read("dimension",rows,cols2,dim_ptr)||
-       !mat.read("pixel_size",rows,cols2,pixel_size_ptr) ||
-       !mat.read("x",rows,cols,x) ||
-       !mat.read("y",rows,cols,y))
+       !mat.read("pixel_size",rows,cols2,pixel_size_ptr))
         return false;
-    mat.read("length",rows,cols,length);
     dim[0] = dim_ptr[0];
     dim[1] = dim_ptr[1];
     pixel_size = *pixel_size_ptr;
-    result_pos.resize(cols);
-    result_features.resize(cols);
-    for(unsigned int index = 0;index < cols;++index)
-    {
-        result_pos[index][0] = x[index];
-        result_pos[index][1] = y[index];
-        if(length)
-            result_features[index] = length[index];
-    }
 
+    for(int i = 0;i < feature_count;++i)
+    {
+        const float* ptr = 0;
+        if(mat.read(feature_list[i],rows,cols,ptr))
+        {
+            if(result_features.empty())
+            {
+                result_features.resize(cols);
+                for(int j = 0;j < cols;++j)
+                    result_features[j].resize(feature_count);
+            }
+            for(int j = 0;j < cols;++j)
+                result_features[j][i] = ptr[j];
+        }
+    }
+    if(result_features.empty())
+        return false;
     const unsigned char* mask = 0;
     if(mat.read("mask",rows,cols,mask))
     {
@@ -391,16 +394,15 @@ bool wsi::load_text_reco_result(const char* file_name)
     std::ifstream in(file_name);
     if(!in)
         return false;
-    result_pos.clear();
     result_features.clear();
     std::string line;
     while(std::getline(in,line))
     {
-        double x,y,v;
+        std::vector<float> f;
         std::istringstream values(line);
-        values >> x >> y >> v;
-        result_pos.push_back(image::vector<2>(x,y));
-        result_features.push_back(v);
+        std::copy(std::istream_iterator<float>(values),
+                  std::istream_iterator<float>(),std::back_inserter(f));
+        result_features.push_back(std::move(f));
     }
     return true;
 }
@@ -411,11 +413,9 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
                                  float min_size,float max_size)
 {
 
-    std::vector<image::vector<2> > cur_result_pos;
-    std::vector<float> cur_result_features;
+    std::vector<std::vector<float> > cur_result_features;
     {
         std::lock_guard<std::mutex> lock(add_data_mutex);
-        cur_result_pos = result_pos;
         cur_result_features = result_features;
     }
     image::geometry<2> output_geo;
@@ -426,18 +426,22 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
     contour.clear();
     contour.resize(output_geo);
     if(is_tma)
-        std::fill(tma_result.begin(),tma_result.end(),0);
+    {
+        for(int i = 0;i < tma_results.size();++i)
+            for(int j = 0;j < tma_feature_count;++j)
+                tma_results[i][j] = 0;
+    }
     image::basic_image<float,2> accumulated_w(output_geo);
     float ratio = pixel_size/resolution_mm;
     float h = band_width_mm/resolution_mm; // band_width in pixels
     int window = std::max<int>(1,h*4.0);  // sampling window in pixels
     float var2 = h*h*2.0;
-    for(int index = 0;index < cur_result_pos.size();++index)
+    for(int index = 0;index < cur_result_features.size();++index)
     {
-        if(cur_result_features[index] < min_size ||
-           cur_result_features[index] > max_size)
+        if(cur_result_features[index][target::span] < min_size ||
+           cur_result_features[index][target::span] > max_size)
             continue;
-        image::vector<2> map_pos(cur_result_pos[index]);
+        image::vector<2> map_pos(cur_result_features[index][target::pos_x],cur_result_features[index][target::pos_y]);
         map_pos *= ratio;
         image::pixel_index<2> map_pos_index(std::round(map_pos[0]),std::round(map_pos[1]),output_geo);
         std::vector<image::pixel_index<2> > map_neighbors;
@@ -449,7 +453,7 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
                 float w = std::exp(-map_neighbor_pos.length2()/var2);
                 if(feature)
                 {
-                    feature_mapping[map_neighbors[j].index()] += w*cur_result_features[index];
+                    feature_mapping[map_neighbors[j].index()] += w*cur_result_features[index][target::span];
                     accumulated_w[map_neighbors[j].index()] += w;
                 }
                 else
@@ -460,8 +464,8 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
         if(is_tma)
         {
             image::pixel_index<2> pos(
-                            std::round((map_mask.width()-1)*(cur_result_pos[index][0])/(dim[0]-1)),
-                            std::round((map_mask.height()-1)*(cur_result_pos[index][1])/(dim[1]-1)),
+                            std::round((map_mask.width()-1)*(cur_result_features[index][target::pos_x])/(dim[0]-1)),
+                            std::round((map_mask.height()-1)*(cur_result_features[index][target::pos_y])/(dim[1]-1)),
                             map_mask.geometry());
             if(tma_map.geometry().is_valid(pos))
             {
@@ -469,7 +473,9 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
                 if(id)
                 {
                     --id;
-                    ++tma_result[id];
+                    tma_results[id][0] += 1.0;
+                    tma_results[id][1] += cur_result_features[index][target::area];
+                    tma_results[id][2] += cur_result_features[index][target::intensity];
                 }
             }
         }

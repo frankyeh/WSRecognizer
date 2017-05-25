@@ -69,11 +69,11 @@ void train_model::recognize(const image::color_image& I,image::grayscale_image& 
     if(smoothing)
         image::morphology::recursive_smoothing(result,smoothing);
 }
-void train_model::cca(const image::grayscale_image& result,
+void train_model::cca(const image::color_image& I,
+                      const image::grayscale_image& result,
                       float pixel_size,
                       unsigned int border,
-                      std::vector<image::vector<2> >& pos,
-                      std::vector<float>& features)
+                      std::vector<std::vector<float> >& features)
 {
     image::basic_image<unsigned int,2> labels;
     std::vector<std::vector<unsigned int> > regions;
@@ -92,12 +92,27 @@ void train_model::cca(const image::grayscale_image& result,
         if(center_of_mass[index][0] < border || center_of_mass[index][0] >= upper_border ||
            center_of_mass[index][1] < border || center_of_mass[index][1] >= upper_border)
             continue;
-        float feature_size = (size_x[index]+size_y[index])/2.0;
-        if(border && feature_size > border)
+        float span = (size_x[index]+size_y[index])/2.0;
+        if(border && span > border)
             continue;
-        feature_size *= pixel_size; // now in micron
-        pos.push_back(center_of_mass[index]);
-        features.push_back(feature_size);
+        unsigned int sum = 0;
+        float intensity = 0;
+        for(int i = 0;i < regions[index].size();++i)
+        {
+            sum += I[regions[index][i]].r;
+            sum += I[regions[index][i]].g;
+            sum += I[regions[index][i]].b;
+        }
+        if(regions[index].size())
+            intensity = sum / regions[index].size();
+        intensity /= 3.0;
+        std::vector<float> f;
+        f.push_back(center_of_mass[index][0]);
+        f.push_back(center_of_mass[index][1]);
+        f.push_back(span*pixel_size);
+        f.push_back(regions[index].size()*pixel_size*pixel_size);
+        f.push_back(intensity);
+        features.push_back(std::move(f));
     }
 }
 
@@ -179,6 +194,8 @@ bool train_model::load_from_file(const char* file_name)
     data.features.swap(new_data.features);
     data.classification.swap(new_data.classification);
     smoothing = param[0];
+    min_size = param[1];
+    max_size = param[2];
     update_classifier_map();
     return true;
 }
@@ -200,6 +217,8 @@ void train_model::save_to_file(const char* file_name)
     }
     std::vector<unsigned int> param(10);
     param[0] = smoothing;
+    param[1] = min_size;
+    param[2] = max_size;
     mat.write("color",&*color.begin(),1,color.size());
     mat.write("label",&*label.begin(),1,label.size());
     mat.write("param",&*param.begin(),1,param.size());

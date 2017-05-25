@@ -105,7 +105,7 @@ void gen_dialog::on_buttonBox_accepted()
         if(w.is_tma)
         {
             QString output_file = file_list[index] + ".tma.txt";
-            w.save_tma_result(output_file.toStdString().c_str());
+            w.save_tma_result(output_file.toStdString().c_str(),ui->label_on_right->isChecked());
         }
     }
 }

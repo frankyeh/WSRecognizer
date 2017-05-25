@@ -2,6 +2,11 @@
 #define TRAIN_MODEL_HPP
 #include "image/image.hpp"
 
+//feature list
+const unsigned int feature_count = 5;
+const char feature_list[feature_count][10] = {"x","y","span (microns)","area (microns^2)","intensity"};
+enum target {pos_x=0, pos_y = 1,span = 2, area = 3, intensity = 4} ;
+
 class train_model
 {
 private:
@@ -15,6 +20,8 @@ public:// for showing the rgb distribution
     double r[9];
 public://parameters
     unsigned int smoothing;
+    unsigned int min_size;
+    unsigned int max_size;
 private:
 public:
     train_model(void);
@@ -37,8 +44,9 @@ public:
 public:
     unsigned char predict(image::rgb_color value);
     void recognize(const image::color_image& I,image::grayscale_image& result,bool* terminated = 0);
-    void cca(const image::grayscale_image& result,float pixel_size,
-             unsigned int border,std::vector<image::vector<2> >& pos,std::vector<float>& features);
+public:
+    void cca(const image::color_image& I,const image::grayscale_image& result,float pixel_size,
+             unsigned int border,std::vector<std::vector<float> >& features);
     bool load_from_file(const char* file_name);
 
     void save_to_file(const char* file_name);
