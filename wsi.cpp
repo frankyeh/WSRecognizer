@@ -18,9 +18,10 @@ bool wsi::can_open(const char* file_name)
     return openslide_can_open(file_name);
 }
 
-bool wsi::open(const char* file_name)
+bool wsi::open(const char* file_name_)
 {
-    handle = openslide_open(file_name);
+    file_name = file_name_;
+    handle = openslide_open(file_name_);
     if(!handle)
         return false;
     {
@@ -30,6 +31,7 @@ bool wsi::open(const char* file_name)
         dim[1] = h;
         const char* ptr;
         ptr = openslide_get_property_value(handle,"openslide.mpp-x");
+        // Microns per pixel in the X dimension of level 0.
         if(ptr)
             std::istringstream(ptr) >> pixel_size;
         else
@@ -49,26 +51,56 @@ bool wsi::open(const char* file_name)
     }
 
     // get map at 40 micron pixel size
+    if(dim_at_level.size() == 1)
+    {
+        int scale = 0,mx = dim[0],my = dim[1];
+        for(;mx > 1000;mx = mx/2,my = my/2)
+            ++scale;
+        map_image.resize(image::geometry<2>(mx,my));
+        unsigned int thread_count = std::thread::hardware_concurrency();
+        std::vector<openslide_t*> handles(thread_count);
+        for(int j = 0;j < handles.size();++j)
+            handles[j] = openslide_open(file_name.c_str());
+        image::par_for2(dim[0]/512,[&](int dx,int id)
+        {
+            int x = dx*512;
+            if(x >= dim[0])
+                return;
+            for(int y = 0;y < dim[1];y += 512)
+            {
+                image::color_image I(image::geometry<2>(std::min<int>(dim[0]-x-1,512),std::min<int>(dim[1]-y-1,512)));
+                openslide_read_region(handles[id],(uint32_t*)&*I.begin(),x,y,0,I.width(),I.height());
+                int px = x,py = y;
+                for(int s = 0;s < scale;++s)
+                {
+                    image::downsampling(I);
+                    px = px / 2;
+                    py = py / 2;
+                }
+                image::draw(I,map_image,image::vector<2>(px,py));
+            }
+        });
+        for(int j = 0;j < handles.size();++j)
+            openslide_close(handles[j]);
+        read_profile(map_image);
+    }
+    else
     {
         float zoom_ratio = 40.0/pixel_size;
         unsigned int level = openslide_get_best_level_for_downsample(handle,zoom_ratio);
         image::color_image I;
         I.resize(dim_at_level[level]);
         openslide_read_region(handle,(uint32_t*)&*I.begin(),0,0,level,I.width(),I.height());
+        read_profile(I);
         map_image.resize(image::geometry<2>(dim_at_level[0][0]/zoom_ratio,dim_at_level[0][1]/zoom_ratio));
         image::scale(I,map_image);
     }
-    {
 
-        map_mask.resize(map_image.geometry());
-        image::grayscale_image gray_image(map_image);
-        int threshold = image::segmentation::otsu_threshold(gray_image);
-        for(int i = 0;i < gray_image.size();++i)
-            map_mask[i] = gray_image[i] > threshold ? 0 : 1;
 
-        image::morphology::smoothing(map_mask);
-        image::morphology::smoothing(map_mask);
-    }
+
+
+    map_mask.resize(map_image.geometry());
+
     for(const char * const * str = openslide_get_property_names(handle);*str;++str)
     {
         property_name.push_back(*str);
@@ -85,6 +117,112 @@ bool wsi::open(const char* file_name)
     }
     process_mask();
     return true;
+}
+void wsi::set_stain_scale(float stain1_scale,float stain2_scale)
+{
+    if(stain1_scale == 1.0 && stain2_scale == 1.0)
+    {
+        stain_scale = false;
+        return;
+    }
+    stain_scale = true;
+    image::matrix<3,3,float> m,s,m2;
+    for(int i = 0,pos = 0;i < 3;++i,pos += 3)
+    {
+        m[pos] = color0_v[i];
+        m[pos+1] = color1_v[i];
+        m[pos+2] = color2_v[i];
+    }
+    s.identity();
+    s[4] = stain1_scale;
+    s[8] = stain2_scale;
+    m2 = m;
+    m2.inv();
+    m *= s;
+    m *= m2;
+    stain_scale_transform = m;
+    stain_scale = true;
+}
+
+void wsi::read_profile(const image::color_image& I)
+{
+    //get background
+    image::vector<3> g;
+    {
+        image::color_image I(image::geometry<2>(100,100));
+        read(I,0,0,0);
+        for(int i = 0;i < I.size();++i)
+        {
+            g[0] += I[i][0];
+            g[1] += I[i][1];
+            g[2] += I[i][2];
+        }
+        g.normalize();
+        //std::cout << g << std::endl;
+    }
+    g.normalize();
+    color0_v = g;
+    image::vector<3> b(1.0,0.0,0.0),nb;
+    b = b-g*(b*g);
+    nb = b.cross_product(g);
+    image::basic_image<double,1> count(image::geometry<1>(720));
+    // calculate color histogram
+    for(int i = 0;i < I.size();++i)
+    {
+        image::vector<3> v(I[i].data);
+        v -= g*(v*g);
+        double l = v.length();
+        if(l < 30.0)
+            continue;
+        int angle = std::round(std::atan2(nb*v,b*v)*180.0/3.14159265358979323846);
+        if(angle < 0)
+            angle += 360;
+        if(angle >= 360)
+            angle -= 360;
+        count[angle] += l;
+        count[angle+360] += l;
+    }
+
+    int local_max_count = 0;
+    std::map<double,int,std::greater<double> > stain_map;
+    do{
+        local_max_count = 0;
+        image::filter::gaussian(count);
+        // correct boundary value
+        count[0] = count[360];
+        count[1] = count[361];
+        count[719] = count[719-360];
+        count[718] = count[718-360];
+        stain_map.clear();
+        for(int i = 1;i <= 360;++i)
+            if(count[i] > count[i-1] && count[i] > count[i+1])
+            {
+                ++local_max_count;
+                stain_map[count[i]] = i;
+            }
+        //std::cout << "max=";
+        //for(auto i = stain_map.begin();i != stain_map.end();++i)
+        //    std::cout << i->first << ":" << i->second << " ";
+        //std::cout << std::endl;
+    }while(local_max_count > 2);
+    auto result =stain_map.begin();
+    color1_count = result->first;
+    double angle1 = result->second*3.14159265358979323846/180;
+    ++result;
+    color2_count = result->first;
+    double angle2 = result->second*3.14159265358979323846/180;
+    image::vector<3> v1,v2;
+    color1_v = b*std::cos(angle1) + nb*std::sin(angle1);
+    color2_v = b*std::cos(angle2) + nb*std::sin(angle2);
+    v1 = color1_v*48.0+g*200.0;
+    v2 = color2_v*48.0+g*200.0;
+    color1 = image::rgb_color(v1[2],v1[1],v1[0]);
+    color2 = image::rgb_color(v2[2],v2[1],v2[0]);
+    //std::cout << color1_v << std::endl;
+    //std::cout << color2_v << std::endl;
+    //std::cout << v1 << std::endl;
+    //std::cout << v2 << std::endl;
+
 }
 void wsi::process_mask(void)
 {
@@ -229,10 +367,67 @@ void wsi::process_mask(void)
         image::negate(map_mask);
     }
 }
-void wsi::read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level)
+bool wsi::read(openslide_t*& cur_handle,image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level)
 {
-    std::lock_guard<std::mutex> lock(read_image_mutex);
-    openslide_read_region(handle,(uint32_t*)&*main_image.begin(),x,y,level,main_image.width(),main_image.height());
+    openslide_read_region(cur_handle,(uint32_t*)&*main_image.begin(),x,y,level,main_image.width(),main_image.height());
+    const char* error = openslide_get_error(cur_handle);
+    if(error)
+    {
+        std::cout << "error ocurred when loading image at (" << x << "," << y << "):" << error << std::endl;
+        openslide_close(cur_handle);
+        std::cout << "try re-open the WSI" << std::endl;
+        cur_handle = openslide_open(file_name.c_str());
+        if(!cur_handle)
+        {
+            std::cout << "re-open WSI failed. Terminating" << std::endl;
+            return false;
+        }
+    }
+    if(intensity_normalization)
+    {
+        if(intensity_map.empty())
+        {
+            intensity_map.resize(map_image.geometry());
+            for(int i = 0;i < map_image.size();++i)
+            {
+                short value = map_image[i][0];
+                value += map_image[i][1];
+                value += map_image[i][2];
+                intensity_map[i] = value / 3;
+            }
+            while(intensity_map.width() > 128)
+                image::downsampling(intensity_map);
+
+        }
+        float r = get_r(level);
+        float r2 = (float)intensity_map.width()/(float)dim[0];
+        for(image::pixel_index<2> index(main_image.geometry());index.is_valid(main_image.geometry());++index)
+        {
+            image::vector<2> pos(x,y);
+            image::vector<2> shift(index.begin());
+            shift *= r;
+            pos += shift;
+            pos *= r2;
+            pos -= 0.5;
+            if(intensity_map.geometry().is_valid(pos))
+            {
+                int s = intensity_norm_value-image::estimate(intensity_map,pos);
+                image::vector<3,int> new_c(main_image[index.index()].data);
+                new_c += s;
+                main_image[index.index()] = new_c.begin();
+            }
+        }
+    }
+    if(stain_scale)
+    {
+        for(int i = 0;i < main_image.size();++i)
+        {
+            image::vector<3> c(main_image[i].data),new_c;
+            image::mat::vector_product(stain_scale_transform.begin(),c.begin(),new_c.begin(),image::dim<3,3>());
+            main_image[i] = new_c.begin();
+        }
+    }
+    return true;
 }
 
 void wsi::push_result(std::vector<std::vector<float> >& features)
@@ -243,13 +438,16 @@ void wsi::push_result(std::vector<std::vector<float> >& features)
     features.clear();
     is_adding_mutex = false;
 }
-void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int thread_count,bool* terminated)
+void wsi::run(unsigned int block_size,
+              unsigned int extra_size,
+              unsigned int thread_count,
+              bool* terminated)
 {
     finished = false;
     if(thread_count < 1)
         thread_count = 1;
 
-    ml.predict(0);// ensure that the features are learned to prevent multithread conflict
+    ml.init();
     result_features.clear();
     is_adding_mutex = false;
 
@@ -264,6 +462,9 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int threa
         }
 
         std::vector<std::vector<std::vector<float> > > features(thread_count);
+        std::vector<openslide_t*> handles(thread_count);
+        for(int j = 0;j < handles.size();++j)
+            handles[j] = openslide_open(file_name.c_str());
 
         image::par_for2(x_list.size(),[&](int i,int id)
         {
@@ -286,28 +487,38 @@ void wsi::run(unsigned int block_size,unsigned int extra_size,unsigned int threa
 
             unsigned int image_size = block_size + extra_size + extra_size;
             image::color_image I(image::geometry<2>(image_size,image_size));
-            read(I,x,y);
+            if(!read(handles[id],I,x,y,0))
+                return;
+
             image::grayscale_image result;
             ml.recognize(I,result,terminated);
             if(*terminated)
                 return;
-            unsigned int pos_size = features[id].size();
-            ml.cca(I,result,pixel_size,extra_size,features[id]);
-            for(int j = pos_size;j < features[id].size();++j)
+            std::vector<std::vector<float> > new_features;
+            ml.cca(I,result,pixel_size,extra_size,x,y,new_features);
+
+            // check whether inside mask
+            for(int j = 0;j < new_features.size();++j)
             {
-                features[id][j][target::pos_x] += x;
-                features[id][j][target::pos_y] += y;
+                int map_x = new_features[j][0]*(map_mask.width()-1)/dim[0];
+                int map_y = new_features[j][1]*(map_mask.height()-1)/dim[1];
+                if(map_mask.geometry().is_valid(map_x,map_y) &&
+                        map_mask.at(map_x,map_y))
+                    features[id].push_back(std::move(new_features[j]));
             }
+
             if(!is_adding_mutex && features[id].size() > 2000)
                 push_result(features[id]);
 
         },thread_count);
+
+        for(int j = 0;j < handles.size();++j)
+            openslide_close(handles[j]);
         for(int id = 0;id < thread_count;++id)
             push_result(features[id]);
     }
 
     finished = true;
-
 }
 void wsi::save_recognition_result(const char* file_name)
 {
@@ -407,10 +618,25 @@ bool wsi::load_text_reco_result(const char* file_name)
     return true;
 }
 
+void wsi::get_picture(image::color_image& I,int x,int y,unsigned int dim)
+{
+    I.clear();
+    I.resize(image::geometry<2>(dim,dim));
+    read(I,x-dim/2,y-dim/2,0);
+}
+void wsi::get_picture(std::vector<float>& data,int x,int y,unsigned int dim)
+{
+    image::color_image I;
+    get_picture(I,x,y,dim);
+    data.resize(dim*dim*3);
+    for(int i = 0,index = 0;i < 3;++i)
+        for(int j = 0;j < I.size();++j,++index)
+            data[index] = ((float)I[j][2-i]/255.0f-0.5f)*2.0f;
+}
+
 void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
                                  image::basic_image<unsigned char,2>& contour,
-                                 float resolution_mm,float band_width_mm,bool feature,
-                                 float min_size,float max_size)
+                                 float resolution_mm,float band_width_mm,bool feature)
 {
 
     std::vector<std::vector<float> > cur_result_features;
@@ -438,9 +664,6 @@ void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,
     float var2 = h*h*2.0;
     for(int index = 0;index < cur_result_features.size();++index)
     {
-        if(cur_result_features[index][target::span] < min_size ||
-           cur_result_features[index][target::span] > max_size)
-            continue;
         image::vector<2> map_pos(cur_result_features[index][target::pos_x],cur_result_features[index][target::pos_y]);
         map_pos *= ratio;
         image::pixel_index<2> map_pos_index(std::round(map_pos[0]),std::round(map_pos[1]),output_geo);

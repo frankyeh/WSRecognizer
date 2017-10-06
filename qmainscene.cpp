@@ -2,12 +2,8 @@
 #include <QtWidgets/QGraphicsSceneMouseEvent>
 #include "qmainscene.h"
 #include "qtrainscene.h"
-//#include "ui_mainwindow.h"
+#include "ui_mainwindow.h"
 #include "mainwindow.h"
-QMainScene::QMainScene(QObject *parent) :
-    QGraphicsScene(parent),show_edge(true),w(0),level(0)
-{
-}
 
 void QMainScene::clear_image(void)
 {
@@ -16,7 +12,7 @@ void QMainScene::clear_image(void)
     result.clear();
     update_image();
 }
-void QMainScene::move_to(unsigned int x_,unsigned int y_)
+void QMainScene::move_to(int x_,int y_)
 {
     if(!w)
     {
@@ -24,12 +20,47 @@ void QMainScene::move_to(unsigned int x_,unsigned int y_)
             update_image();
         return;
     }
-    x = x_;
-    y = y_;
-    main_image.resize(image::geometry<2>(std::max(100,views()[0]->width()-20),std::max(100,views()[0]->height()-20)));
-    w->read(main_image,x,y,level);
+    int iw = std::min<int>(w->get_width(level),std::max(100,views()[0]->width()-20));
+    int ih = std::min<int>(w->get_height(level),std::max(100,views()[0]->height()-20));
+    x = std::max<int>(0,std::min<int>(w->dim[0]-iw*w->get_r(level),x_));
+    y = std::max<int>(0,std::min<int>(w->dim[1]-ih*w->get_r(level),y_));
+    if(level < 0)
+    {
+        for(int i = 0;i > level;--i)
+        {
+            iw /= 2;
+            ih /= 2;
+        }
+        main_image.resize(image::geometry<2>(iw,ih));
+        w->read(main_image,x,y,0);
+        for(int i = 0;i > level;--i)
+            image::upsampling(main_image);
+    }
+    else
+    {
+        main_image.resize(image::geometry<2>(iw,ih));
+        w->read(main_image,x,y,level);
+    }
     result.clear();
     update_image();
+    main_window->map_scene.update();
+}
+void QMainScene::zoom_in(void)
+{
+    if(!w || level < -1)
+        return;
+    --level;
+    move_to(x+main_image.width()*(w->get_r(level+1)-w->get_r(level))/2,
+            y+main_image.height()*(w->get_r(level+1)-w->get_r(level))/2);
+}
+
+void QMainScene::zoom_out(void)
+{
+    if(!w || level == w->level-1)
+        return;
+    ++level;
+    move_to(x+main_image.width()*(w->get_r(level-1)-w->get_r(level))/2,
+            y+main_image.height()*(w->get_r(level-1)-w->get_r(level))/2);
 }
 
 void QMainScene::update_image(void)
@@ -40,10 +71,10 @@ void QMainScene::update_image(void)
         clear();
         return;
     }
-    if(!result.empty() && show_recog)
+    if(show_recog)
     {
         annotated_image = main_image;
-        if(show_edge)
+        if(!result.empty())
         {
             image::grayscale_image result_edge;
             image::morphology::edge(result,result_edge);
@@ -51,26 +82,58 @@ void QMainScene::update_image(void)
                 if(result_edge[index] && !result[index])
                     annotated_image[index] = image::rgb_color(255,0,0);
         }
-        else
-        for(unsigned int index = 0;index < result.size();++index)
-            if(result[index])
-                annotated_image[index][2] = 255;
         output_image = QImage((unsigned char*)&*annotated_image.begin(),annotated_image.width(),annotated_image.height(),QImage::Format_RGB32);
 
         QPainter paint(&output_image);
-        paint.setPen(Qt::blue);
-        for(unsigned int index = 0;index < result_features.size();++index)
-        if(result_features[index][target::span] > 0) // size not 0
+        paint.setPen(QPen(Qt::blue,2));
+
+        float r = w->get_r(level);
+        int x_to = x+width()*r;
+        int y_to = y+height()*r;
+        int pen_size = 25.0f/r;
+        for(unsigned int index = 0;index < main_window->result_features.size();++index)
+        if(main_window->result_features[index][0] > x &&
+           main_window->result_features[index][0] < x_to &&
+           main_window->result_features[index][1] > y &&
+           main_window->result_features[index][1] < y_to) // size not 0
         {
-            float r = result_features[index][target::span]/pixel_size;
-            paint.drawEllipse(result_features[index][target::pos_x]-r/2.0,result_features[index][target::pos_y]-r/2.0,r,r);
+            int px = (main_window->result_features[index][0]-x)/r;
+            int py = (main_window->result_features[index][1]-y)/r;
+            if(pen_size > 5)
+                paint.drawEllipse(px-pen_size,py-pen_size,pen_size+pen_size,pen_size+pen_size);
+            else
+            {
+                paint.drawLine(px-3,py,px+3,py);
+                paint.drawLine(px,py-3,px,py+3);
+            }
         }
     }
     else
         output_image = QImage((unsigned char*)&*main_image.begin(),main_image.width(),main_image.height(),QImage::Format_RGB32);
-
     if(!w)
         output_image = output_image.scaled(output_image.width()*(level+1),output_image.height()*(level+1));
+    else
+    {
+        float size = w->get_pixel_size(level);
+        float scale[8] = {5,10,50,100,500,1000,5000,10000};
+        char text[8][13] = {"5 microns","10 microns","50 microns",
+                            "100 microns","500 microns","1 mm","5 mm","1 cm"};
+        int scale_id = 0;
+        float length = scale[scale_id]/size;
+        while(1)
+        {
+            length = scale[scale_id]/size;
+            if(scale_id == 7 || length > 50)
+                break;
+            ++scale_id;
+        }
+        QPainter p(&output_image);
+        p.setPen(QPen(Qt::black,2));
+        p.drawLine(20,20,20+length,20);
+        p.drawLine(20,15,20,25);
+        p.drawLine(20+length,15,20+length,25);
+        p.drawText(30+length,20,text[scale_id]);
+    }
     setSceneRect(0, 0, output_image.width(),output_image.height());
     clear();
     setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -95,7 +158,7 @@ void QMainScene::mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent )
     float dy = mouseEvent->scenePos().y()-ly;
     if(level)
     {
-        float ratio = w->dim[0]/w->dim_at_level[level][0];
+        float ratio = w->get_r(level);
         dx *= ratio;
         dy *= ratio;
     }
@@ -115,12 +178,13 @@ void QMainScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent )
         x /= level+1;
         y /= level+1;
     }
-    std::vector<image::rgb_color> pixels;
-    image::get_window(image::pixel_index<2>(x,y,main_image.geometry()),main_image,pixels);
-    for(unsigned int index = 0;index < pixels.size();++index)
-        train_scene->ml.add_data(pixels[index],(mouseEvent->button() == Qt::LeftButton ? 0:1));
-    train_scene->ml.update_classifier_map();
-    train_scene->update();
+
+    if(main_window->ui->train_classifier->isChecked())
+    {
+        train_scene->ml.add_data(main_image[image::pixel_index<2>(x,y,main_image.geometry()).index()],
+                                            (mouseEvent->button() == Qt::LeftButton ? 0:1));
+        train_scene->update();
+    }
     mouseEvent->accept();
 
 }

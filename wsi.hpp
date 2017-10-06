@@ -11,11 +11,13 @@ class wsi
 {
 public:
     openslide_t* handle;
+    std::string file_name;
     image::geometry<2> dim;
     float pixel_size; // in micron;
-    std::vector<image::geometry<2> > dim_at_level;
-    std::vector<double> r_at_level;
     unsigned int level;
+public:
+    bool intensity_normalization = false;
+    float intensity_norm_value = 0;
 public:
     bool is_tma;
     image::basic_image<int,2> tma_map;
@@ -25,6 +27,7 @@ public:
 
 public:
     image::color_image map_image;
+    image::grayscale_image intensity_map;
     image::grayscale_image map_mask;
 public:
     std::vector<std::string> property_name;
@@ -38,8 +41,51 @@ public:
     bool open(const char* file_name);
     void process_mask(void);
 public:
-    std::mutex read_image_mutex;
-    void read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level = 0);
+    bool read(openslide_t*& cur_handle,image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level);
+    bool read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level)
+    {
+        return read(handle,main_image,x,y,level);
+    }
+private:
+    std::vector<image::geometry<2> > dim_at_level;
+    std::vector<double> r_at_level;
+public:
+    double get_r(int level) const
+    {
+        if(level < 0)
+            return get_r(level+1)*0.5;
+        return r_at_level[level];
+    }
+    int get_height(int level) const
+    {
+        if(level < 0)
+            return get_height(level+1)*2;
+        return dim_at_level[level][1];
+    }
+    int get_width(int level) const
+    {
+        if(level < 0)
+            return get_width(level+1)*2;
+        return dim_at_level[level][0];
+    }
+    float get_pixel_size(int level) const
+    {
+        return pixel_size*get_r(level);
+    }
+
+    template<typename value_type>
+    void map_coordinate_to_level(value_type& x,value_type& y,int level)
+    {
+        x = (float)x/(float)map_image.width()*(float)dim_at_level[level][0];
+        y = (float)y/(float)map_image.height()*(float)dim_at_level[level][1];
+    }
+    template<typename value_type>
+    void level_coordinate_to_map(value_type& x,value_type& y,int level)
+    {
+        x = (float)x*(float)map_image.width()/(float)dim_at_level[level][0];
+        y = (float)y*(float)map_image.height()/(float)dim_at_level[level][1];
+    }
+
 public:
     std::mutex add_data_mutex;
     bool is_adding_mutex;
@@ -56,11 +102,19 @@ public:
     bool load_text_reco_result(const char* file_name);
     void get_distribution_image(image::basic_image<float,2>& feature_mapping,
                                 image::basic_image<unsigned char,2>& contour,
-                                float resolution_mm,float band_width_mm,bool feature,
-                                float min_size,float max_size);
-    void get_result_txt(std::vector<std::string>& name,
-                        std::vector<float>& value);
+                                float resolution_mm,float band_width_mm,bool feature);
+    void get_picture(image::color_image& I,int x,int y,unsigned int dim);
+    void get_picture(std::vector<float>& I,int x,int y,unsigned int dim);
 
+public: // color profile
+    image::vector<3> color0_v,color1_v,color2_v;
+    image::rgb_color color1,color2;
+    double color1_count,color2_count;
+    void read_profile(const image::color_image& I);
+public:
+    bool stain_scale = false;
+    image::matrix<3,3,float> stain_scale_transform;
+    void set_stain_scale(float stain1_scale,float stain2_scale);
 public: // report
     float mean_value;
     float max_value;

@@ -1,19 +1,22 @@
 #include <QtWidgets/QGraphicsSceneMouseEvent>
+#include <QGraphicsView>
 #include <QPainter>
 #include "qtrainscene.h"
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
 
-
-QTrainScene::QTrainScene(QObject *parent) :
-    QGraphicsScene(parent)
+QTrainScene::QTrainScene(MainWindow *parent) :
+    QGraphicsScene(parent),main_window(parent)
 {
 }
 
 void QTrainScene::update(void)
 {
     clear();
-    if(ml.classifier_map.empty())
-        return;
-    QImage qimage((unsigned char*)&*ml.classifier_map.begin(),ml.classifier_map.width(),ml.classifier_map.height(),QImage::Format_RGB32);
+    ml.update_classifier_map(std::max<int>(30,views()[0]->width()-50));
+    QImage qimage((unsigned char*)&*ml.classifier_map.begin(),
+                 ml.classifier_map.width(),
+                  ml.classifier_map.height(),QImage::Format_RGB32);
     {
         QPainter paint(&qimage);
         image::vector<2,double> x_dir,y_dir,z_dir;
@@ -46,13 +49,14 @@ void QTrainScene::update(void)
 
 void QTrainScene::mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
+    if(!ml.has_data())
+        return;
     double dx = mouseEvent->scenePos().x()-mouseEvent->lastScenePos().x();
     double dy = mouseEvent->scenePos().y()-mouseEvent->lastScenePos().y();
     double rr[9],tmp[9];
     image::rotation_y_matrix(-dx* 0.01,rr);
-    image::mat::product(rr,ml.r,tmp,image::dyndim(3,3),image::dyndim(3,3));
+    image::mat::product(rr,ml.r.begin(),tmp,image::dyndim(3,3),image::dyndim(3,3));
     image::rotation_x_matrix(dy* 0.01,rr);
-    image::mat::product(rr,tmp,ml.r,image::dyndim(3,3),image::dyndim(3,3));
-    ml.update_classifier_map();
+    image::mat::product(rr,tmp,ml.r.begin(),image::dyndim(3,3),image::dyndim(3,3));
     update();
 }

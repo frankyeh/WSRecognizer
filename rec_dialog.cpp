@@ -57,11 +57,6 @@ void rec_dialog::on_open_model_file_clicked()
     }
     model_name = QFileInfo(filename).baseName();
     ui->classification_label->setText(QString("Classification Model: ")+model_name);
-    ui->smoothing->setValue(w.ml.smoothing);
-    ui->min_size->setValue(w.ml.min_size);
-    ui->max_size->setValue(w.ml.max_size);
-
-
 }
 
 void rec_dialog::add_log(QString text)
@@ -150,7 +145,6 @@ void rec_dialog::on_run_clicked()
         QMessageBox::information(this,"Error","Please assign the WSI files",0);
         return;
     }
-    w.ml.smoothing = ui->smoothing->value();
     terminated = false;
     future = std::async(std::launch::async, [this](){
         run_thread();

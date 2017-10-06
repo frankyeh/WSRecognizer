@@ -3,13 +3,15 @@
 
 #include <QtWidgets/QGraphicsScene>
 #include "train_model.hpp"
+class MainWindow;
 class QTrainScene : public QGraphicsScene
 {
     Q_OBJECT
 public:
     train_model ml;
 public:
-    explicit QTrainScene(QObject *parent = 0);
+    MainWindow* main_window;
+    QTrainScene(MainWindow*);
 protected:
     //void mouseDoubleClickEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     //void mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent );

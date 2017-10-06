@@ -71,7 +71,7 @@ void gen_dialog::on_buttonBox_accepted()
         image::basic_image<unsigned char,2> sdi_contour;
         w.get_distribution_image(sdi_value,sdi_contour,
                                  ui->resolution->value(),ui->resolution->value(),
-                                 ui->type->currentIndex(),ui->min_size->value(),ui->max_size->value());
+                                 ui->type->currentIndex());
 
         image::color_image sdi_image(sdi_value.geometry());
 

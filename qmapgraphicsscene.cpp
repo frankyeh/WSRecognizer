@@ -2,11 +2,13 @@
 #include <QPainter>
 #include "qmapgraphicsscene.h"
 #include "qmainscene.h"
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
 
 void QMapGraphicsScene::update(void)
 {
     map_image = w->map_image;
-    if(show_mask)
+    //if(show_mask)
     {
         image::grayscale_image edge(w->map_mask);
         image::morphology::edge(edge);
@@ -14,8 +16,45 @@ void QMapGraphicsScene::update(void)
             if(edge[index])
                 map_image[index] = image::rgb_color(255,0,0);
     }
+    //if(main_window->ui->show_reco_on_map->isChecked())
+    {
+        double rx = double(map_image.width()-1)/w->dim[0];
+        double ry = double(map_image.height()-1)/w->dim[1];
+        int shift[9] = {-map_image.width()*2,-map_image.width(),-2,-1,0,1,2,map_image.width(),map_image.width()*2};
+        for(int i = 0;i < main_window->result_features.size();++i)
+        {
+            bool red = (i == main_window->ui->recog_result->currentRow());
+            int x = main_window->result_features[i][0]*rx;
+            int y = main_window->result_features[i][1]*ry;
+            int pos = y*map_image.width()+x;
+            for(int j = 0;j < 9;++j)
+            {
+                int p = pos + shift[j];
+                if(p >=0 && p < map_image.size())
+                    map_image[p] = red ? image::rgb_color(255,0,0) : image::rgb_color(0,0,255);
+            }
+        }
+    }
+
+
     QImage I((unsigned char*)&*map_image.begin(),map_image.width(),map_image.height(),QImage::Format_RGB32);
-    qimage = I.scaled(w->dim[0]*w->pixel_size/(float)resolution,w->dim[1]*w->pixel_size/(float)resolution);
+
+
+
+    double scale = w->pixel_size/(float)resolution;
+    qimage = I.scaled(w->dim[0]*scale,w->dim[1]*scale);
+    {
+        QPainter paint(&qimage);
+        double x = qimage.width()*main_scene.x/w->dim[0];
+        double y = qimage.height()*main_scene.y/w->dim[1];
+        double rx = qimage.width()*main_scene.main_image.width()*w->get_r(main_scene.level)/w->dim[0];
+        double ry = qimage.height()*main_scene.main_image.height()*w->get_r(main_scene.level)/w->dim[1];
+        paint.setPen(Qt::red);
+        paint.drawLine(x,y,x+rx,y);
+        paint.drawLine(x,y+ry,x+rx,y+ry);
+        paint.drawLine(x,y,x,y+ry);
+        paint.drawLine(x+rx,y,x+rx,y+ry);
+    }
     setSceneRect(0, 0, qimage.width(),qimage.height());
     clear();
     setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -49,11 +88,7 @@ void QMapGraphicsScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEven
 {
     if(!w || w->map_image.empty())
         return;
-    main_scene.move_to(w->dim[0]*mouseEvent->scenePos().x()/(sceneRect().width()-1),
-                       w->dim[1]*mouseEvent->scenePos().y()/(sceneRect().height()-1));
 
-    if(sel_point.empty())
-        return;
     if (sel_point.size() > 2)
     {
         QImage bitmap(qimage.width(),qimage.height(),QImage::Format_Mono);
@@ -76,7 +111,20 @@ void QMapGraphicsScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEven
                 else
                     w->map_mask[index.index()] = 1;
             }
+        update();
+    }
+    else
+    {
+        int x = w->dim[0]*mouseEvent->scenePos().x()/(sceneRect().width()-1);
+        int y = w->dim[1]*mouseEvent->scenePos().y()/(sceneRect().height()-1);
+        main_scene.move_to(x,y);
     }
     sel_point.clear();
-    update();
+
+
+
+
+
+
+
 }

@@ -12,18 +12,28 @@ class QMainScene : public QGraphicsScene
     Q_OBJECT
 public:
     wsi* w;
-    unsigned int level;
-    unsigned int x,y;
+    int level;
+    int x,y;
     float pixel_size;
     image::color_image main_image, annotated_image;
     bool show_recog;
     QTrainScene* train_scene;
-    explicit QMainScene(QObject *parent = 0);
+    MainWindow* main_window;
+    QMainScene(MainWindow *main_window_):
+        show_edge(true),w(0),level(0),main_window(main_window_)
+    {
+    }
 public:
     bool show_edge;
     image::grayscale_image result;
-    std::vector<std::vector<float> > result_features;
-    void move_to(unsigned int x_,unsigned int y_);
+
+    void reload(void)
+    {
+        move_to(x,y);
+    }
+    void move_to(int x_,int y_);
+    void zoom_in(void);
+    void zoom_out(void);
 protected:
     bool moved;
     unsigned int lx,ly;
@@ -31,6 +41,7 @@ protected:
     void mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent );
+
 signals:
     
 public slots:

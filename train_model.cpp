@@ -1,80 +1,33 @@
 #include "train_model.hpp"
 #include "libs/gzip_interface.hpp"
-void train_model::get_position(const image::vector<3,double>& pos,
-                  const image::vector<2,double>& x_dir,
-                  const image::vector<2,double>& y_dir,
-                  const image::vector<2,double>& z_dir,
-                  double size,
-                  int& x,int& y)
-{
-    image::vector<2,double> present_location(1,1);
-    present_location += x_dir * (pos[0]-0.5);
-    present_location += y_dir * (pos[1]-0.5);
-    present_location += z_dir * (pos[2]-0.5);
-    //present_location[0] += pos[0]-0.5;
-    //present_location[1] += pos[2]-0.5;
 
-    present_location *= size;
-    present_location /= 2.0;
-    x = present_location[0];//+(rand() & 3) - 2.0;
-    y = present_location[1];//+(rand() & 3) - 2.0;
-}
-train_model::train_model(void):solution_space(256*256*256)
+train_model::train_model(void):r(9),param(10)
 {
-    std::fill(r,r+9,0.0);
     r[0] = r[4] = r[8] = 1.0;
-}
-bool train_model::is_trained(void) const
-{
-    bool has_foreground = false;
-    bool has_background = false;
-    for(unsigned int index = 0;index < data.classification.size();++index)
-        if(data.classification[index])
-            has_foreground = true;
-        else
-            has_background = true;
-    return has_foreground && has_background;
-}
-unsigned char train_model::predict(image::rgb_color value)
-{
-    if(!ml_model.get())
-    {
-        ml_model.reset(new model_type);
-        ml_model->learn(data.features.begin(),data.features.end(),3,data.classification.begin());
-        std::fill(solution_space.begin(),solution_space.end(),0);
-    }
-    unsigned char result = solution_space[value.color];
-    if (!result)
-    {
-        double atts[3];
-        atts[0] = ((double)value.r/255.0);
-        atts[1] = ((double)value.g/255.0);
-        atts[2] = ((double)value.b/255.0);
-        result = solution_space[value.color] = ml_model->predict(atts)+1;
-    }
-    return result-1;
 }
 
 void train_model::recognize(const image::color_image& I,image::grayscale_image& result,bool* terminated)
 {
+    init();
     result.resize(I.geometry());
     for (unsigned int index = 0;index < result.size();++index)
     {
-        image::rgb_color value = I[index];
-        value[3] = 0;
-        result[index] = predict(value) ? 255 : 0;
+        result[index] = predict(I[index]) ? 255:0;
         if(terminated && *terminated)
             return;
     }
-    if(smoothing)
-        image::morphology::recursive_smoothing(result,smoothing);
+    if(param[0] != 0.0)
+        image::morphology::recursive_smoothing(result,param[0]);
 }
 void train_model::cca(const image::color_image& I,
                       const image::grayscale_image& result,
                       float pixel_size,
                       unsigned int border,
+                      int x,
+                      int y,
                       std::vector<std::vector<float> >& features)
 {
+
     image::basic_image<unsigned int,2> labels;
     std::vector<std::vector<unsigned int> > regions;
     image::morphology::connected_component_labeling(result,labels,regions);
@@ -85,6 +38,7 @@ void train_model::cca(const image::color_image& I,
     image::morphology::get_region_bounding_size(labels,regions,size_x,size_y);
     image::morphology::get_region_center(labels,regions,center_of_mass);
 
+    int fov_range = std::min<int>(20,std::max<int>(4,param[2]));
 
     for(size_t index = 0;index < regions.size();++index)
     if(!regions[index].empty())
@@ -92,76 +46,111 @@ void train_model::cca(const image::color_image& I,
         if(center_of_mass[index][0] < border || center_of_mass[index][0] >= upper_border ||
            center_of_mass[index][1] < border || center_of_mass[index][1] >= upper_border)
             continue;
-        float span = (size_x[index]+size_y[index])/2.0;
+        float span = std::max(size_x[index],size_y[index]);
         if(border && span > border)
             continue;
-        unsigned int sum = 0;
-        float intensity = 0;
-        for(int i = 0;i < regions[index].size();++i)
+
+
+        std::vector<image::pixel_index<2> > neighbors;
+        image::get_neighbors(image::pixel_index<2>(center_of_mass[index][0],center_of_mass[index][1],
+                result.geometry()),result.geometry(),fov_range,neighbors);
+
+
+        float sum_in = 0.0f,sum_out = 0.0f;
+        unsigned int count_in = 0,count_out = 0;
+        for(int i = 0;i < neighbors.size();++i)
         {
-            sum += I[regions[index][i]].r;
-            sum += I[regions[index][i]].g;
-            sum += I[regions[index][i]].b;
+            int pos = neighbors[i].index();
+            if(result[pos])
+            {
+                sum_in += I[pos].r;
+                sum_in += I[pos].g;
+                sum_in += I[pos].b;
+                ++count_in;
+            }
+        else
+            {
+                sum_out += I[pos].r;
+                sum_out += I[pos].g;
+                sum_out += I[pos].b;
+                ++count_out;
+            }
         }
-        if(regions[index].size())
-            intensity = sum / regions[index].size();
-        intensity /= 3.0;
+        if(count_in)
+            sum_in /= count_in;
+        if(count_out)
+            sum_out /= count_out;
+        float intensity = (sum_out - sum_in)/255.0;
         std::vector<float> f;
-        f.push_back(center_of_mass[index][0]);
-        f.push_back(center_of_mass[index][1]);
+        // feature list 0:x 1:y 2:span 3:area 4:shape 5:intensity gradient
+        f.push_back(center_of_mass[index][0]+x);
+        f.push_back(center_of_mass[index][1]+y);
         f.push_back(span*pixel_size);
         f.push_back(regions[index].size()*pixel_size*pixel_size);
+        f.push_back(regions[index].size()/span/span);
         f.push_back(intensity);
+        if(!fulfill_param(f))
+            continue;
+        if(!nn.empty())
+        {
+            image::color_image I2;
+            int dim= nn.get_input_dim()[0];
+            int shift = dim >> 1;
+            image::vector<2,int> from(center_of_mass[index][0]-shift,center_of_mass[index][1]-shift);
+            image::vector<2,int> to(from);
+            to += dim;
+            image::crop(I,I2,from,to);
+            std::vector<float> data(dim*dim*3);
+            for(int i = 0,index = 0;i < 3;++i)
+                for(int j = 0;j < I2.size();++j,++index)
+                    data[index] = ((float)I2[j][2-i]/255.0f-0.5f)*2.0f;
+            std::cout << center_of_mass[index][0] << " " << center_of_mass[index][1] << " " << nn.predict_label(data) << std::endl;
+            if(nn.predict_label(data) == 0)
+                continue;
+        }
         features.push_back(std::move(f));
     }
 }
 
+bool train_model::fulfill_param(const std::vector<float> features) const
+{
+    // feature list 0:x 1:y 2:span 3:area 4:shape 5:intensity gradient
+    // check span
+    if(param[1] != 0.0f || param[2] != 0.0f)
+    {
+        if(features[2] < param[1] || features[2] > param[2])
+            return false;
+    }
+    // check area
+    if(param[3] != 0.0f || param[4] != 0.0f)
+    {
+        if(features[3] < param[3] || features[3] > param[4])
+            return false;
+    }
+    // check shape
+    if(param[5] != 0.0f || param[6] != 0.0f)
+    {
+        if(features[4] < param[5] || features[4] > param[6])
+            return false;
+    }
+    // check intensity gradient
+    if(param[7] != 0.0f || param[8] != 0.0f)
+    {
+        if(features[5] < param[7] || features[5] > param[8])
+            return false;
+    }
+    return true;
+}
 
 void train_model::clear()
 {
-    std::fill(solution_space.begin(),solution_space.end(),0);
-    data.classification.clear();
     data.features.clear();
+    data.classification.clear();
+    ml_model.reset();
+    solution_space.clear();
     classifier_map.clear();
-    ml_model.reset(0);
 }
-void train_model::update_classifier_map(void)
-{
-    classifier_map.clear();
-    if (data.features.size())
-    {
-        size_t image_size = 200;
-        classifier_map.resize(image::geometry<2>(image_size,image_size));
-        std::fill(classifier_map.begin(),classifier_map.end(),image::rgb_color(255,255,255));
-        image::vector<2,double> x_dir,y_dir,z_dir;
-        x_dir[0] = r[0];
-        x_dir[1] = r[3];
-        y_dir[0] = r[1];
-        y_dir[1] = r[4];
-        z_dir[0] = r[2];
-        z_dir[1] = r[5];
-        for (size_t index = 0;index < data.features.size();++index)
-        {
-            image::vector<3,double> pos;
-            std::copy(data.features[index].begin(),data.features[index].end(),pos.begin());
-            int x,y;
-            get_position(pos,x_dir,y_dir,z_dir,image_size,x,y);
-            if (!classifier_map.geometry().is_valid(x,y))
-                continue;
-            size_t pindex = x + y*classifier_map.width();
-            if (data.classification[index])
-                {
-                    classifier_map[pindex].g >>=1;
-                    classifier_map[pindex].b >>=1;
-                }
-                else
-                {
-                    classifier_map[pindex].r >>=1;
-                    classifier_map[pindex].g >>=1;
-                }
-        }
-    }
-}
+
 
 bool train_model::load_from_file(const char* file_name)
 {
@@ -174,29 +163,30 @@ bool train_model::load_from_file(const char* file_name)
     if(!mat.read("color",row,col,color) ||
        !mat.read("label",row,col,label))
         return false;
-    image::ml::training_data<double,unsigned char> new_data;
-    new_data.features.resize(col);
-    new_data.classification.resize(col);
-    for(unsigned int index = 0;index < new_data.features.size();++index)
-    {
-        image::rgb_color cur_color;
-        cur_color.color = color[index];
-        new_data.features[index].resize(3);
-        new_data.features[index][0] = ((double)cur_color.r)/255.0;
-        new_data.features[index][1] = ((double)cur_color.g)/255.0;
-        new_data.features[index][2] = ((double)cur_color.b)/255.0;
-        new_data.classification[index] = label[index];
-    }
-    const unsigned int* param = 0;
-    if(!mat.read("param",row,col,param))
+    int sample_size = col;
+    const float* param_ptr = 0;
+    if(!mat.read("param",row,col,param_ptr))
         return false;
     clear();
-    data.features.swap(new_data.features);
-    data.classification.swap(new_data.classification);
-    smoothing = param[0];
-    min_size = param[1];
-    max_size = param[2];
-    update_classifier_map();
+    data.features.resize(sample_size);
+    data.classification.resize(sample_size);
+    for(int i = 0;i < sample_size;++i)
+    {
+        image::rgb_color cur_color;
+        cur_color.color = color[i];
+        data.features[i].resize(3);
+        data.features[i][0] = ((float)cur_color.r)/255.0f;
+        data.features[i][1] = ((float)cur_color.g)/255.0f;
+        data.features[i][2] = ((float)cur_color.b)/255.0f;
+        data.classification[i] = label[i];
+    }
+    ml_model.reset();
+    init();
+    int param_size = param.size();
+    param.clear();
+    std::copy(param_ptr,param_ptr+row*col,std::back_inserter(param));
+    if(param.size() < param_size)
+        param.resize(param_size);
     return true;
 }
 
@@ -205,46 +195,31 @@ void train_model::save_to_file(const char* file_name)
     if(data.features.empty())
         return;
     gz_mat_write mat(file_name);
-
-    std::vector<unsigned int> color(data.features.size());
-    std::vector<unsigned char> label(data.classification.size());
-    for(unsigned int index = 0;index < color.size();++index)
+    unsigned int sample_size = data.features.size();
+    std::vector<unsigned int> color(sample_size);
+    std::vector<unsigned char> label(sample_size);
+    for(int i = 0;i < data.features.size();++i)
     {
-        color[index] = image::rgb_color(data.features[index][0]*255.0,
-                                        data.features[index][1]*255.0,
-                                        data.features[index][2]*255.0);
-        label[index] = data.classification[index];
+        color[i] = image::rgb_color(data.features[i][0]*255.0,
+                                        data.features[i][1]*255.0,
+                                        data.features[i][2]*255.0);
+        label[i] = data.classification[i];
     }
-    std::vector<unsigned int> param(10);
-    param[0] = smoothing;
-    param[1] = min_size;
-    param[2] = max_size;
-    mat.write("color",&*color.begin(),1,color.size());
-    mat.write("label",&*label.begin(),1,label.size());
+    mat.write("color",&*color.begin(),1,sample_size);
+    mat.write("label",&*label.begin(),1,sample_size);
     mat.write("param",&*param.begin(),1,param.size());
-}
-
-void train_model::add_data(const image::color_image& I,bool background)
-{
-    for (size_t index = 0;index < I.size();++index)
-    {
-        if (I[index] == image::rgb_color(255,255,255))
-            continue;
-        add_data(I[index],background);
-    }
-    update_classifier_map();
-    ml_model.reset(0);
 }
 
 void train_model::add_data(image::rgb_color color,bool background)
 {
-    double atts[3];
-    atts[0] = ((double)color.r/255.0);
-    atts[1] = ((double)color.g/255.0);
-    atts[2] = ((double)color.b/255.0);
+    float atts[3];
+    atts[0] = ((float)color.r/255.0f);
+    atts[1] = ((float)color.g/255.0f);
+    atts[2] = ((float)color.b/255.0f);
     data.features.resize(data.features.size()+1);
     data.features.back().resize(3);
     std::copy(atts,atts+3,data.features.back().begin());
     data.classification.push_back(background ? 0 : 1);
-    ml_model.reset(0);
+    if(ml_model.get())
+        ml_model.reset();
 }

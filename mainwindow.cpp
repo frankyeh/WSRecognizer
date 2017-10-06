@@ -16,7 +16,9 @@ extern image::color_image bar,colormap;
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    map_scene(main_scene)
+    map_scene(main_scene,this),
+    main_scene(this),
+    train_scene(this)
 {
     ui->setupUi(this);
     ui->tma_feature->clear();
@@ -28,9 +30,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->main_view->setScene(&main_scene);
     ui->train_view->setScene(&train_scene);
     ui->result_view->setScene(&result_scene);
+    ui->data_view->setScene(&data_scene);
+    ui->nn_view->setScene(&nn_scene);
     ui->info_widget->setColumnWidth(0,200);
     ui->info_widget->setColumnWidth(1,200);
-    ui->splitter->setSizes(QList<int> () << height()*3/4 << height()/4);
     ui->result_widget->setTabEnabled(2,false);
     main_scene.train_scene = &train_scene;
     for (int i = 0; i < MaxRecentFiles; ++i)
@@ -52,6 +55,17 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->resolution,SIGNAL(valueChanged(int)),this,SLOT(update_sdi()));
     QObject::connect(ui->resolution,SIGNAL(valueChanged(int)),this,SLOT(update_color_bar()));
 
+    QObject::connect(ui->intensity_homo,SIGNAL(toggled(bool)),this,SLOT(on_apply_intensity_normalizatoin_clicked()));
+    QObject::connect(ui->normalized_intensity,SIGNAL(valueChanged(int)),this,SLOT(on_apply_intensity_normalizatoin_clicked()));
+    QObject::connect(ui->stain1_scale,SIGNAL(valueChanged(double)),this,SLOT(on_apply_intensity_normalizatoin_clicked()));
+    QObject::connect(ui->stain2_scale,SIGNAL(valueChanged(double)),this,SLOT(on_apply_intensity_normalizatoin_clicked()));
+
+    QObject::connect(ui->load_model,SIGNAL(clicked()),this,SLOT(on_actionLoad_Stain_Classifier_triggered()));
+    QObject::connect(ui->save_model,SIGNAL(clicked()),this,SLOT(on_actionSave_Stain_Classifier_triggered()));
+    QObject::connect(ui->load_nn,SIGNAL(clicked()),this,SLOT(on_actionLoad_Neural_Network_triggered()));
+    QObject::connect(ui->save_nn,SIGNAL(clicked()),this,SLOT(on_actionSave_Neural_Network_triggered()));
+
+
     QStringList recent_file_list = settings.value("recent_files").toStringList();
     updateRecentList(recent_file_list);
     if(!recent_file_list.isEmpty())
@@ -62,13 +76,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    if(future.valid())
+    if(thread.has_started())
         on_run_clicked();
     delete ui;
 }
 void MainWindow::resizeEvent(QResizeEvent* event)
 {
     main_scene.setSceneRect(0,0,ui->main_view->width()-5,ui->main_view->height()-5);
+    main_scene.reload();
 }
 
 void MainWindow::updateRecentList(QStringList files)
@@ -112,17 +127,33 @@ void MainWindow::openFile(QString filename)
     ui->result_widget->setTabEnabled(1,true);
 
     w.reset(new_w.release());
-    main_scene.w = w.get();
+
+
     map_scene.w = w.get();
     map_scene.update();
+
     if(!w->associated_image.empty())
     {
         QImage qimage((unsigned char*)&*w->associated_image[0].begin(),w->associated_image[0].width(),w->associated_image[0].height(),QImage::Format_RGB32);
-        info_scene.setSceneRect(0, 0, qimage.width(),qimage.height());
+        qimage= qimage.scaledToWidth(150);
+        info_scene.setSceneRect(0, 0, qimage.width()+60,std::max<int>(qimage.height(),160));
         info_scene.clear();
         info_scene.setItemIndexMethod(QGraphicsScene::NoIndex);
         info_scene.addRect(0, 0, qimage.width(),qimage.height(),QPen(),qimage);
+        QImage S1(35,35,QImage::Format_RGB32),S2(35,35,QImage::Format_RGB32);
+        S1.fill(QColor(w->color1.color));
+        S2.fill(QColor(w->color2.color));
+        info_scene.addText(QString("Ratio %1:1").arg((int)(w->color1_count/w->color2_count)))->moveBy(qimage.width()+7,0);
+        info_scene.addText(QString("Stain 1"))->moveBy(qimage.width()+7,20);
+        info_scene.addRect(qimage.width()+10,40,35,35,QPen(),S1);
+        info_scene.addText(QString("Stain 2"))->moveBy(qimage.width()+7,75);
+        info_scene.addRect(qimage.width()+10,95,35,35,QPen(),S2);
+
+
+        ui->slice_tab_widget->setMaximumHeight(std::max<int>(qimage.height(),140)+100);
     }
+    else
+        ui->slice_tab_widget->hide();
 
     ui->result_widget->setTabEnabled(2,w->is_tma);
     ui->info_widget->clear();
@@ -133,12 +164,6 @@ void MainWindow::openFile(QString filename)
         ui->info_widget->setItem(index, 0, new QTableWidgetItem(w->property_name[index].c_str()));
         ui->info_widget->setItem(index, 1, new QTableWidgetItem(w->property_value[index].c_str()));
     }
-    ui->main_scale->setMaximum(w->level-1);
-    main_scene.main_image.clear();
-    main_scene.pixel_size = w->pixel_size;
-    main_scene.update_image();
-
-
     work_path = QFileInfo(filename).absolutePath();
     QDir::setCurrent(work_path);
     file_name = filename;
@@ -161,6 +186,15 @@ void MainWindow::openFile(QString filename)
         update_sdi();
         update_color_bar();
     }
+    main_scene.level = 0;
+    main_scene.w = w.get();
+    main_scene.x = w->dim[0]/2;
+    main_scene.y = w->dim[1]/2;
+    main_scene.main_image.clear();
+    main_scene.pixel_size = w->pixel_size;
+\
+    on_apply_intensity_normalizatoin_clicked();
+
 }
 
 void MainWindow::on_action_Open_triggered()
@@ -179,9 +213,15 @@ void MainWindow::set_training_param()
 {
     if(!train_scene.ml.is_trained())
         return;
-    train_scene.ml.smoothing = ui->smoothing->value();
-    train_scene.ml.min_size = ui->min_size->value();
-    train_scene.ml.max_size = ui->max_size->value();
+    train_scene.ml.param[0] = ui->smoothing->value();
+    train_scene.ml.param[1] = ui->check_span->isChecked() ? ui->min_span->value() : 0;
+    train_scene.ml.param[2] = ui->check_span->isChecked() ? ui->max_span->value() : 0;
+    train_scene.ml.param[3] = ui->check_area->isChecked() ? ui->min_area->value() : 0;
+    train_scene.ml.param[4] = ui->check_area->isChecked() ? ui->max_area->value() : 0;
+    train_scene.ml.param[5] = ui->check_shape->isChecked() ? ui->min_shape->value() : 0;
+    train_scene.ml.param[6] = ui->check_shape->isChecked() ? ui->max_shape->value() : 0;
+    train_scene.ml.param[7] = ui->check_edge->isChecked() ? ui->min_edge->value() : 0;
+    train_scene.ml.param[8] = ui->check_edge->isChecked() ? ui->max_edge->value() : 0;
 
 }
 
@@ -189,20 +229,46 @@ void MainWindow::on_recognize_stains_clicked()
 {
     if(!train_scene.ml.is_trained() || main_scene.main_image.empty())
         return;
-    set_training_param();
-    train_scene.ml.recognize(main_scene.main_image,main_scene.result);
-    main_scene.result_features.clear();
-    train_scene.ml.cca(main_scene.main_image,main_scene.result,w.get() ? w->pixel_size : 1,0,main_scene.result_features);
-    unsigned int count = 0;
-    for(int i = 0;i < main_scene.result_features.size();++i)
-        if(main_scene.result_features[i][target::span] < ui->min_size->value() ||
-           main_scene.result_features[i][target::span] > ui->max_size->value())
-            main_scene.result_features[i][target::span] = 0;
-        else
-            ++count;
-    ui->Test_result->setText(QString("%1 targets recognized").arg(count));
-    ui->show_recog->setChecked(true);
-    main_scene.update_image();
+    if(main_scene.level <= 0)
+    {
+        set_training_param();
+        std::vector<std::vector<float> > new_features;
+        train_scene.ml.recognize(main_scene.main_image,main_scene.result);
+
+        train_scene.ml.cca(main_scene.main_image,main_scene.result,w.get() ? w->pixel_size : 1,0,
+                           main_scene.x,main_scene.y,new_features);
+        ui->test_result->setText(QString("%1 targets recognized").arg(new_features.size()));
+        ui->show_recog->setChecked(true);
+        main_scene.update_image();
+        addRecoResult(new_features);
+    }
+    else
+    {
+        QMessageBox::information(this,"Error","Please zoom in at higher power view to recognize targets",0);
+    }
+}
+
+void MainWindow::addRecoResult(const std::vector<std::vector<float> >& result)
+{
+    if(!ui->target_location->isChecked())
+        return;
+    ui->recog_result->setHorizontalHeaderLabels(QStringList() << "X" << "Y" << "Span" << "Area" << "Shape" << "Intensity");
+
+    for(unsigned int index = 0;index < result.size();++index)
+    {
+        result_features.push_back(result[index]);
+        if(ui->recog_result->rowCount() > 65535)
+            continue;
+        ui->recog_result->setRowCount(ui->recog_result->rowCount()+1);
+        int row = ui->recog_result->rowCount()-1;
+        ui->recog_result->setItem(row, 0, new QTableWidgetItem(QString::number(result[index][0])));
+        ui->recog_result->setItem(row, 1, new QTableWidgetItem(QString::number(result[index][1])));
+        ui->recog_result->setItem(row, 2, new QTableWidgetItem(QString::number(result[index][2])));
+        ui->recog_result->setItem(row, 3, new QTableWidgetItem(QString::number(result[index][3])));
+        ui->recog_result->setItem(row, 4, new QTableWidgetItem(QString::number(result[index][4])));
+        ui->recog_result->setItem(row, 5, new QTableWidgetItem(QString::number(result[index][5])));
+    }
+    map_scene.update();
 }
 
 void MainWindow::on_run_clicked()
@@ -210,18 +276,25 @@ void MainWindow::on_run_clicked()
     if(!w.get())
         return;
     set_training_param();
-    if(future.valid())
+    if(thread.has_started())
     {
         disconnect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
         terminated = true;
-        future.wait();
+        thread.wait();
+        thread.clear();
         ui->progressBar->setValue(0);
         ui->run->setText("Run");
+        addRecoResult(w->result_features);
         return;
     }
     terminated = false;
+    w->ml.nn = train_scene.ml.nn;
     w->ml = train_scene.ml;
-    future = std::async(std::launch::async, [this](){w->run(4000,200,ui->thread_count->value(),&terminated);});
+    thread.clear();
+    thread.run([this]()
+    {
+        w->run(4000,200,std::thread::hardware_concurrency(),&terminated);
+    });
     timer.reset(new QTimer(this));
     connect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
     timer->start(5000);
@@ -232,10 +305,11 @@ void MainWindow::on_run_clicked()
 
 
 
+
 void MainWindow::show_run_progress(void)
 {
     ui->progressBar->setValue(w->progress);
-    if(future.valid() && w->finished)
+    if(thread.has_started() && w->finished)
         on_run_clicked();
     update_sdi();
     update_color_bar();
@@ -243,7 +317,7 @@ void MainWindow::show_run_progress(void)
 void MainWindow::update_sdi(void)
 {
     w->get_distribution_image(sdi_value,sdi_contour,ui->resolution->value(),ui->resolution->value(),
-                              ui->type->currentIndex(),ui->min_size->value(),ui->max_size->value());
+                              ui->type->currentIndex());
 
 
     ui->tableWidget->clear();
@@ -376,61 +450,6 @@ void MainWindow::update_color_bar(void)
     ui->result_view->show();
 }
 
-void MainWindow::on_show_map_mask_toggled(bool checked)
-{
-    if(w.get())
-    {
-        map_scene.show_mask = checked;
-        map_scene.update();
-    }
-}
-
-void MainWindow::on_save_reco_result_clicked()
-{
-    if(!w.get() || w->result_features.empty())
-        return;
-    QString filename = QFileDialog::getSaveFileName(
-                           this,"Save results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".jpg","Image file (*.jpg *.png);;MAT file (*.mat);;text files (*.txt);;All files (*)");
-    if (filename.isEmpty())
-        return;
-    if(QFileInfo(filename).suffix() == "txt")
-    {
-        std::ofstream out(filename.toLocal8Bit().begin());
-        for(unsigned int index = 0;index < w->result_features.size();++index)
-        {
-            std::copy(w->result_features[index].begin(),
-                      w->result_features[index].end(),
-                      std::ostream_iterator<float>(out," "));
-            out << std::endl;
-        }
-        return;
-    }
-
-    if(QFileInfo(filename).suffix() == "mat")
-    {
-        image::io::mat_write mat(filename.toLocal8Bit().begin());
-        mat << sdi_value;
-        return;
-    }
-    QImage I((unsigned char*)&*sdi_image.begin(),sdi_image.width(),sdi_image.height(),QImage::Format_ARGB32);
-    I.save(filename);
-
-
-}
-
-void MainWindow::on_open_reco_result_clicked()
-{
-    if(!w.get())
-        return;
-    QString filename = QFileDialog::getOpenFileName(
-                           this,
-                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","text files (*.txt);;All files (*)");
-    if (filename.isEmpty())
-        return;
-    w->load_text_reco_result(filename.toLocal8Bit().begin());
-    update_sdi();
-    update_color_bar();
-}
 
 
 void MainWindow::update_result()
@@ -447,35 +466,6 @@ void MainWindow::on_new_model_clicked()
     train_scene.ml.clear();
     train_scene.update();
     main_scene.clear_image();
-}
-
-void MainWindow::on_open_model_clicked()
-{
-    QString filename = QFileDialog::getOpenFileName(
-                           this,
-                           "Open image",work_path + "//"+ QFileInfo(file_name).baseName() + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
-    if (filename.isEmpty())
-        return;
-    if(!train_scene.ml.load_from_file(filename.toLocal8Bit().begin()))
-    {
-        QMessageBox::information(this,"Error","Invalid file format",0);
-        return;
-    }
-    reg_name = QFileInfo(filename).baseName();
-    ui->smoothing->setValue(train_scene.ml.smoothing);
-    ui->min_size->setValue(train_scene.ml.min_size);
-    ui->max_size->setValue(train_scene.ml.max_size);
-}
-
-void MainWindow::on_save_model_clicked()
-{
-    QString filename = QFileDialog::getSaveFileName(
-                           this,
-                           "Save image",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
-    if (filename.isEmpty())
-        return;
-    set_training_param();
-    train_scene.ml.save_to_file(filename.toLocal8Bit().begin());
 }
 
 void MainWindow::on_show_recog_toggled(bool checked)
@@ -503,58 +493,6 @@ void MainWindow::on_map_size_valueChanged(int value)
     map_scene.update();
 }
 
-void MainWindow::on_dilation_clicked()
-{
-    image::morphology::dilation(w->map_mask);
-    map_scene.update();
-}
-
-void MainWindow::on_erosion_clicked()
-{
-    image::morphology::erosion(w->map_mask);
-    map_scene.update();
-}
-
-void MainWindow::on_smoothing_2_clicked()
-{
-    image::morphology::smoothing(w->map_mask);
-    map_scene.update();
-}
-
-void MainWindow::on_defragment_clicked()
-{
-    image::morphology::defragment(w->map_mask);
-    map_scene.update();
-}
-
-
-void MainWindow::on_clear_all_clicked()
-{
-    std::fill(w->map_mask.begin(),w->map_mask.end(),0);
-    map_scene.update();
-}
-
-void MainWindow::on_threshold_clicked()
-{
-    bool ok;
-    image::grayscale_image gray_image(w->map_image);
-    int threshold = QInputDialog::getInt(this,"DSI Studio","Please assign the threshold",
-                                         (int)image::segmentation::otsu_threshold(gray_image),
-                                         0,255,1,&ok);
-    if (!ok)
-        return;
-    w->map_mask = gray_image;
-    image::binary(w->map_mask,std::bind2nd (std::less<unsigned char>(), threshold));
-        map_scene.update();
-}
-
-
-void MainWindow::on_main_scale_sliderMoved(int position)
-{
-    main_scene.level = position;
-    main_scene.move_to(main_scene.x,main_scene.y);
-
-}
 
 void MainWindow::on_actionOpen_image_triggered()
 {
@@ -571,8 +509,6 @@ void MainWindow::on_actionOpen_image_triggered()
         QMessageBox::information(this,"Error","Cannot open image file",0);
         return;
     }
-    ui->main_scale->setMaximum(10);
-    ui->main_scale->setValue(0);
     ui->NavigationWidget->hide();
     ui->result_widget->setTabEnabled(0,false);
     ui->result_widget->setTabEnabled(1,false);
@@ -580,7 +516,7 @@ void MainWindow::on_actionOpen_image_triggered()
 
 
     QImage I2 = I.convertToFormat(QImage::Format_RGB32);
-    main_scene.level = ui->main_scale->value();
+    main_scene.level = 0;
     main_scene.main_image.resize(image::geometry<2>(I2.width(),I2.height()));
     std::copy((const unsigned int*)I2.bits(),(const unsigned int*)I2.bits() + main_scene.main_image.size(),main_scene.main_image.begin());
     main_scene.update_image();
@@ -602,5 +538,521 @@ void MainWindow::on_tma_feature_currentIndexChanged(int index)
         return;
     update_sdi();
 }
+
+
+void MainWindow::on_recog_result_currentItemChanged(QTableWidgetItem *current, QTableWidgetItem *previous)
+{
+    if(!w.get() || ui->recog_result->currentRow() == -1)
+        return;
+    int row = ui->recog_result->currentRow();
+    int x = result_features[row][0]-main_scene.width()*w->get_r(main_scene.level)/2;
+    int y = result_features[row][1]-main_scene.height()*w->get_r(main_scene.level)/2;
+    main_scene.move_to(x,y);
+    map_scene.update();
+}
+
+void MainWindow::on_open_reco_clicked()
+{
+    if(!w.get())
+        return;
+    QString filename = QFileDialog::getOpenFileName(
+                           this,
+                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","text files (*.txt);;All files (*)");
+    if (filename.isEmpty())
+        return;
+    w->load_text_reco_result(filename.toLocal8Bit().begin());
+
+    ui->recog_result->clear();
+    result_features.clear();
+
+    addRecoResult(w->result_features);
+    update_sdi();
+    update_color_bar();
+}
+
+void MainWindow::on_save_reco_clicked()
+{
+    if(!w.get() || ui->recog_result->rowCount() == 0)
+        return;
+    QString filename = QFileDialog::getSaveFileName(
+                           this,"Save results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","text files (*.txt);;jpg files (*.jpg);;data (*.bin);;All files (*)");
+    if (filename.isEmpty())
+        return;
+
+    if(QFileInfo(filename).suffix() == "bin")
+    {
+
+        image::ml::network_data<float,unsigned char> nn_data;
+        nn_data.input = image::geometry<3>(32,32,3);
+        nn_data.output = image::geometry<3>(1,1,2);
+        for(int row = 0;row < result_features.size();++row)
+        {
+            std::vector<float> data;
+            w->get_picture(data,result_features[row][0],result_features[row][1],32);
+            nn_data.data.push_back(std::move(data));
+            nn_data.data_label.push_back(0);
+        }
+        nn_data.save_to_file(filename.toStdString().c_str());
+        return;
+    }
+
+    if(QFileInfo(filename).suffix() == "jpg")
+    {
+        for(int row = 0;row < result_features.size();++row)
+        {
+            image::color_image I;
+            w->get_picture(I,result_features[row][0],result_features[row][1],200);
+            QImage qimage((unsigned char*)&*I.begin(),I.width(),I.height(),QImage::Format_RGB32);
+            qimage.save(QFileInfo(filename).absolutePath() + "/" +
+                        QFileInfo(filename).baseName() + "_" +
+                        QString("%1").arg(row, 5, 10, QChar('0')) + ".jpg");
+        }
+        return;
+    }
+    std::ofstream out(filename.toLocal8Bit().begin());
+    for(int row = 0;row < result_features.size();++row)
+    {
+        for(int col = 0;col < result_features[row].size();++col)
+            out << result_features[row][col] << " ";
+        out << std::endl;
+    }
+}
+
+void MainWindow::on_save_density_image_clicked()
+{
+    if(!w.get() || w->result_features.empty())
+        return;
+    QString filename = QFileDialog::getSaveFileName(
+                           this,"Save results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".jpg","jpg image (*.jpg);;All files (*)");
+    if (filename.isEmpty())
+        return;
+    QImage I((unsigned char*)&*sdi_image.begin(),sdi_image.width(),sdi_image.height(),QImage::Format_ARGB32);
+    I.save(filename);
+}
+
+void MainWindow::on_del_row_clicked()
+{
+    if(ui->recog_result->currentRow() < 0)
+        return;
+    result_features.erase(result_features.begin()+ui->recog_result->currentRow());
+    ui->recog_result->removeRow(ui->recog_result->currentRow());
+    map_scene.update();
+}
+
+void MainWindow::on_del_all_clicked()
+{
+    ui->recog_result->setRowCount(0);
+    result_features.clear();
+    map_scene.update();
+}
+
+
+void MainWindow::wheelEvent ( QWheelEvent * event )
+{
+    if(!w.get())
+        return;
+    if(event->delta() > 0)
+        main_scene.zoom_in();
+    else
+        main_scene.zoom_out();
+}
+void MainWindow::keyPressEvent ( QKeyEvent * event )
+{
+    if(!nn_data.empty() && event->key() >= Qt::Key_0 && event->key() <= Qt::Key_9)
+    {
+        int label = event->key()-Qt::Key_0;
+        nn_data.data_label[ui->data_pos->value()] = label;
+        on_data_pos_valueChanged(0);
+        event->accept();
+        return;
+    }
+
+    if(w.get())
+    switch(event->key())
+    {
+        case Qt::Key_A:
+            main_scene.x -= main_scene.width()*w->get_r(main_scene.level)/4;
+            main_scene.reload();
+            event->accept();
+            break;
+        case Qt::Key_D:
+            main_scene.x += main_scene.width()*w->get_r(main_scene.level)/4;
+            main_scene.reload();
+            event->accept();
+            break;
+        case Qt::Key_W:
+            main_scene.y -= main_scene.height()*w->get_r(main_scene.level)/4;
+            main_scene.reload();
+            event->accept();
+            break;
+        case Qt::Key_S:
+            main_scene.y += main_scene.height()*w->get_r(main_scene.level)/4;
+            main_scene.reload();
+            event->accept();
+            break;
+
+
+        /*
+        case Qt::Key_Left:
+            glWidget->move_by(-1,0);
+            break;
+        case Qt::Key_Right:
+            glWidget->move_by(1,0);
+            break;
+        case Qt::Key_Up:
+            glWidget->move_by(0,-1);
+            break;
+        case Qt::Key_Down:
+            glWidget->move_by(0,1);
+            break;*/
+    }
+    if(event->isAccepted())
+        return;
+    QWidget::keyPressEvent(event);
+}
+
+void MainWindow::on_nn_filter_results_clicked()
+{
+    if(!w.get() || train_scene.ml.nn.empty())
+        return;
+    for(int row = 0;row < result_features.size();++row)
+    {
+        int x = result_features[row][0];
+        int y = result_features[row][1];
+        std::vector<float> data;
+        w->get_picture(data,x,y,train_scene.ml.nn.get_input_dim()[0]);
+        if(!train_scene.ml.nn.predict_label(data))
+        {
+            result_features.erase(result_features.begin()+row);
+            ui->recog_result->removeRow(row);
+            --row;
+        }
+    }
+}
+
+void MainWindow::on_apply_intensity_normalizatoin_clicked()
+{
+    if(!w.get())
+        return;
+    w->intensity_normalization = ui->intensity_homo->isChecked();
+    w->intensity_norm_value = ui->normalized_intensity->value();
+    w->set_stain_scale(ui->stain1_scale->value(),ui->stain2_scale->value());
+    main_scene.reload();
+}
+
+void MainWindow::on_actionLoad_Stain_Classifier_triggered()
+{
+    QString filename = QFileDialog::getOpenFileName(
+                           this,
+                           "Open image",work_path + "//"+ QFileInfo(file_name).baseName() + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
+    if (filename.isEmpty())
+        return;
+    if(!train_scene.ml.load_from_file(filename.toLocal8Bit().begin()))
+    {
+        QMessageBox::information(this,"Error","Invalid file format",0);
+        return;
+    }
+    reg_name = QFileInfo(filename).baseName();
+    ui->smoothing->setValue(train_scene.ml.param[0]);
+    ui->check_span->setChecked(train_scene.ml.param[1] != 0.0f || train_scene.ml.param[2] != 0.0f);
+    ui->check_area->setChecked(train_scene.ml.param[3] != 0.0f || train_scene.ml.param[4] != 0.0f);
+    ui->check_shape->setChecked(train_scene.ml.param[5] != 0.0f || train_scene.ml.param[6] != 0.0f);
+    ui->check_edge->setChecked(train_scene.ml.param[7] != 0.0f || train_scene.ml.param[8] != 0.0f);
+
+
+    ui->min_span->setValue(train_scene.ml.param[1]);
+    ui->max_span->setValue(train_scene.ml.param[2]);
+    ui->min_area->setValue(train_scene.ml.param[3]);
+    ui->max_area->setValue(train_scene.ml.param[4]);
+    ui->min_shape->setValue(train_scene.ml.param[5]);
+    ui->max_shape->setValue(train_scene.ml.param[6]);
+    ui->min_edge->setValue(train_scene.ml.param[7]);
+    ui->max_edge->setValue(train_scene.ml.param[8]);
+
+}
+
+void MainWindow::on_actionSave_Stain_Classifier_triggered()
+{
+    QString filename = QFileDialog::getSaveFileName(
+                           this,
+                           "Save image",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".mdl.gz","text files (*.mdl.gz);;All files (*)");
+    if (filename.isEmpty())
+        return;
+    set_training_param();
+    train_scene.ml.save_to_file(filename.toLocal8Bit().begin());
+}
+
+void MainWindow::on_actionSmoothing_triggered()
+{
+    image::morphology::smoothing(w->map_mask);
+    map_scene.update();
+}
+
+void MainWindow::on_actionEnlarge_triggered()
+{
+    image::morphology::dilation(w->map_mask);
+    map_scene.update();
+}
+
+void MainWindow::on_actionDefragment_triggered()
+{
+    image::morphology::defragment(w->map_mask);
+    map_scene.update();
+}
+
+void MainWindow::on_actionShrink_triggered()
+{
+    image::morphology::erosion(w->map_mask);
+    map_scene.update();
+}
+
+void MainWindow::on_actionClear_triggered()
+{
+    std::fill(w->map_mask.begin(),w->map_mask.end(),0);
+    map_scene.update();
+}
+
+
+void MainWindow::on_clear_all_clicked()
+{
+    std::fill(w->map_mask.begin(),w->map_mask.end(),0);
+    map_scene.update();
+}
+
+void MainWindow::on_actionThreshold_triggered()
+{
+    bool ok;
+    image::grayscale_image gray_image(w->map_image);
+    int threshold = QInputDialog::getInt(this,"DSI Studio","Please assign the threshold",
+                                         (int)image::segmentation::otsu_threshold(gray_image),
+                                         0,255,1,&ok);
+    if (!ok)
+        return;
+    w->map_mask = gray_image;
+    image::binary(w->map_mask,std::bind2nd (std::less<unsigned char>(), threshold));
+        map_scene.update();
+}
+
+void MainWindow::on_actionLoad_Neural_Network_triggered()
+{
+    QString filename;
+    filename = QFileDialog::getOpenFileName(
+                this,
+                "Open network",work_path,
+                "Network files (*.net);;All files (*)");
+    if(filename.isEmpty())
+        return;
+    train_scene.ml.nn.load_from_file(filename.toStdString().c_str());
+    ui->nn->setText(train_scene.ml.nn.nn_text.c_str());
+}
+
+void MainWindow::on_actionSave_Neural_Network_triggered()
+{
+    QString filename;
+    filename = QFileDialog::getSaveFileName(
+                this,
+                "Save network",work_path,
+                "Network files (*.net);;All files (*)");
+    if(filename.isEmpty())
+        return;
+    train_scene.ml.nn.save_to_file(filename.toStdString().c_str());
+}
+
+void MainWindow::on_load_nn_data_clicked()
+{
+    QString filename;
+    filename = QFileDialog::getOpenFileName(
+                this,
+                "Open data",work_path,
+                "Data files (*.bin);;All files (*)");
+    if(filename.isEmpty())
+        return;
+    nn_data.load_from_file(filename.toStdString().c_str());
+    ui->data_pos->setMaximum(nn_data.size()-1);
+}
+
+void MainWindow::on_save_nn_data_clicked()
+{
+    if(nn_data.empty())
+        return;
+    QString filename;
+    filename = QFileDialog::getSaveFileName(
+                this,
+                "Save data",work_path,
+                "Data files (*.bin);;All files (*)");
+    if(filename.isEmpty())
+        return;
+    nn_data.save_to_file(filename.toStdString().c_str());
+}
+
+void MainWindow::on_add_nn_data_clicked()
+{
+    if(!w.get() || result_features.empty())
+        return;
+    nn_data.input = image::geometry<3>(32,32,3);
+    nn_data.output = image::geometry<3>(1,1,2);
+    for(int row = 0;row < result_features.size();++row)
+    {
+        std::vector<float> data;
+        w->get_picture(data,result_features[row][0],result_features[row][1],32);
+        nn_data.data.push_back(std::move(data));
+        nn_data.data_label.push_back(0);
+    }
+    ui->data_pos->setMaximum(nn_data.size()-1);
+    QMessageBox::information(this,"WS Recognier","Image added",0);
+}
+
+
+void MainWindow::on_del_nn_data_clicked()
+{
+    if(nn_data.empty() || ui->data_pos->value() >= nn_data.size())
+        return;
+    nn_data.data.erase(nn_data.data.begin() + ui->data_pos->value());
+    nn_data.data_label.erase(nn_data.data_label.begin() + ui->data_pos->value());
+    ui->data_pos->setMaximum(nn_data.size()-1);
+    on_data_pos_valueChanged(0);
+}
+
+void MainWindow::on_train_nn_clicked()
+{
+    if(train_scene.ml.nn.empty() || nn_data.input.size() != train_scene.ml.nn.get_input_size())
+    {
+        QMessageBox::information(this,"Error","Data does not fit the network layers");
+        return;
+    }
+
+    if(nn_thread.has_started())
+        nn_thread.clear();
+
+    train_scene.ml.nn.learning_rate = ui->learning_rate->value();
+    train_scene.ml.nn.w_decay_rate = ui->w_decay->value();
+    train_scene.ml.nn.b_decay_rate = ui->b_decay->value();
+    train_scene.ml.nn.momentum = ui->momentum->value();
+    train_scene.ml.nn.batch_size = ui->batch_size->value();
+    train_scene.ml.nn.epoch = ui->epoch->value();
+    end_training = false;
+    test_error = 100;
+    training_error = 100;
+    nn_thread.run([&]()
+    {
+        auto on_enumerate_epoch = [&](){
+            test_error = train_scene.ml.nn.test_error(nn_data.data,nn_data.data_label);
+            training_error = train_scene.ml.nn.get_training_error();
+            std::cout << "training error:" << training_error << "  test error:" << test_error << std::endl;
+        };
+        image::ml::network_data<float,unsigned char> aug_data(nn_data);
+        int size = aug_data.size();
+        for(int i = 0;i < size;++i)
+        {
+            aug_data.data.push_back(aug_data.data[i]);
+            aug_data.data_label.push_back(aug_data.data_label[i]);
+            image::flip_x(image::make_image(&aug_data.data.back()[0],
+                          image::geometry<3>(aug_data.input[0],nn_data.input[1],nn_data.input[2])));
+        }
+        size = aug_data.size();
+        for(int i = 0;i < size;++i)
+        {
+            aug_data.data.push_back(aug_data.data[i]);
+            aug_data.data_label.push_back(aug_data.data_label[i]);
+            image::flip_y(image::make_image(&aug_data.data.back()[0],
+                          image::geometry<3>(aug_data.input[0],nn_data.input[1],nn_data.input[2])));
+        }
+        size = aug_data.size();
+        for(int i = 0;i < size;++i)
+        {
+            aug_data.data.push_back(aug_data.data[i]);
+            aug_data.data_label.push_back(aug_data.data_label[i]);
+            image::swap_xy(image::make_image(&aug_data.data.back()[0],
+                          image::geometry<3>(aug_data.input[0],nn_data.input[1],nn_data.input[2])));
+        }
+
+        clock_t t = std::clock();
+        train_scene.ml.nn.train(nn_data,nn_thread.terminated, on_enumerate_epoch);
+        end_training = true;
+    });
+
+    nn_timer.reset(new QTimer(this));
+    connect(nn_timer.get(), SIGNAL(timeout()), this, SLOT(on_nn_timer()));
+    nn_timer->setInterval(200);
+    nn_timer->start();
+}
+
+void MainWindow::on_nn_timer()
+{
+    ui->training_error_label->setText(QString("%1 %").arg(training_error));
+    ui->test_error_label->setText(QString("%1 %").arg(test_error));
+
+    image::color_image I2;
+    train_scene.ml.nn.to_image(I2,nn_data.data[ui->data_pos->value()],
+                   nn_data.data_label[ui->data_pos->value()],20,400);
+    QImage qimage((unsigned char*)&*I2.begin(),I2.width(),I2.height(),QImage::Format_RGB32);
+    nn_image = qimage.scaled(I2.width()*2,I2.height()*2);
+    nn_scene.setSceneRect(0, 0, nn_image.width(),nn_image.height());
+    nn_scene.clear();
+    nn_scene.setItemIndexMethod(QGraphicsScene::NoIndex);
+    nn_scene.addRect(0, 0, nn_image.width(),nn_image.height(),QPen(),nn_image);
+
+    if(end_training)
+        nn_timer->stop();
+}
+
+void MainWindow::on_reset_nn_clicked()
+{
+    train_scene.ml.nn.reset();
+    if(!(train_scene.ml.nn << ui->nn->text().toStdString()))
+    {
+        QMessageBox::information(this,"Error",QString("Invalid network text: %1").arg(train_scene.ml.nn.error_msg.c_str()));
+        train_scene.ml.nn.reset();
+        return;
+    }
+    train_scene.ml.nn.init_weights();
+}
+
+
+void MainWindow::on_data_pos_valueChanged(int value)
+{
+    if(nn_data.empty())
+        return;
+    auto& data = nn_data.data[ui->data_pos->value()];
+    image::grayscale_image I(image::geometry<2>(nn_data.input[0],nn_data.input[1]*nn_data.input[2]));
+    for(int i = 0;i < data.size();++i)
+        I[i] = std::floor((data[i]+1.0f)*127.0f);
+    image::color_image cI = I;
+    QImage qimage((unsigned char*)&*cI.begin(),cI.width(),cI.height(),QImage::Format_RGB32);
+
+
+
+    data_image = qimage.scaledToHeight(std::max<int>(qimage.height(),data_scene.views()[0]->height()-50));
+    data_scene.setSceneRect(0, 0, data_image.width()*2,data_image.height()+20);
+    data_scene.clear();
+    data_scene.setItemIndexMethod(QGraphicsScene::NoIndex);
+    data_scene.addRect(0, 0, data_image.width(),data_image.height(),QPen(),data_image);
+
+    if(nn_data.input[2] == 3) // RGB
+    {
+        image::color_image I2(image::geometry<2>(nn_data.input[0],nn_data.input[1]));
+        int shift1 = I2.size();
+        int shift2 = shift1 + shift1;
+        for(int i = 0;i < I2.size();++i)
+            I2[i] = image::rgb_color(I[i],I[i+shift1],I[i+shift2]);
+        QImage qimage2((unsigned char*)&*I2.begin(),I2.width(),I2.height(),QImage::Format_RGB32);
+        data_image2 = qimage2.scaledToWidth(data_image.width());
+        data_scene.addRect(data_image.width(), 0, data_image2.width(),data_image2.height(),QPen(),data_image2);
+    }
+    QString info;
+    info = QString("%1/%2 Label=%3").arg(ui->data_pos->value()+1).
+                                     arg(nn_data.size()).
+                                     arg((int)nn_data.data_label[ui->data_pos->value()]);
+    if(!train_scene.ml.nn.empty() && nn_data.input.size() == train_scene.ml.nn.get_input_size())
+    {
+        info += QString(" NN:%1").arg(train_scene.ml.nn.predict_label(nn_data.data[ui->data_pos->value()]));
+    }
+
+    QGraphicsTextItem* text = data_scene.addText(info);
+    text->moveBy(0,data_image.height());
+}
+
+
+
 
 
