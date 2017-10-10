@@ -466,6 +466,8 @@ void wsi::run(unsigned int block_size,
         for(int j = 0;j < handles.size();++j)
             handles[j] = openslide_open(file_name.c_str());
 
+        image::time t;
+        t.start();
         image::par_for2(x_list.size(),[&](int i,int id)
         {
             if(*terminated)
@@ -507,8 +509,11 @@ void wsi::run(unsigned int block_size,
                     features[id].push_back(std::move(new_features[j]));
             }
 
-            if(!is_adding_mutex && features[id].size() > 2000)
+            if(!is_adding_mutex && features[id].size() && t.elapsed<std::chrono::seconds>() > 2)
+            {
+                t.start();
                 push_result(features[id]);
+            }
 
         },thread_count);
 

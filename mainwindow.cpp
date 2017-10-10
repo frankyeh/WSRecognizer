@@ -284,9 +284,9 @@ void MainWindow::on_run_clicked()
         thread.clear();
         ui->progressBar->setValue(0);
         ui->run->setText("Run");
-        addRecoResult(w->result_features);
         return;
     }
+    added_results = 0;
     terminated = false;
     w->ml.nn = train_scene.ml.nn;
     w->ml = train_scene.ml;
@@ -302,12 +302,17 @@ void MainWindow::on_run_clicked()
     ui->run->setText("Stop");
 }
 
-
-
-
-
 void MainWindow::show_run_progress(void)
 {
+    if(added_results < w->result_features.size())
+    {
+        int count = w->result_features.size();
+        std::vector<std::vector<float> > new_result;
+        for(int i = added_results;i < count;++i)
+            new_result.push_back(w->result_features[i]);
+        added_results = count;
+        addRecoResult(new_result);
+    }
     ui->progressBar->setValue(w->progress);
     if(thread.has_started() && w->finished)
         on_run_clicked();
@@ -842,8 +847,13 @@ void MainWindow::on_actionLoad_Neural_Network_triggered()
                 "Network files (*.net);;All files (*)");
     if(filename.isEmpty())
         return;
+    if(nn_thread.has_started())
+    {
+        nn_thread.clear();
+        nn_timer->stop();
+    }
     train_scene.ml.nn.load_from_file(filename.toStdString().c_str());
-    ui->nn->setText(train_scene.ml.nn.nn_text.c_str());
+    ui->nn->setText(train_scene.ml.nn.get_layer_text().c_str());
 }
 
 void MainWindow::on_actionSave_Neural_Network_triggered()
@@ -866,7 +876,12 @@ void MainWindow::on_load_nn_data_clicked()
                 "Open data",work_path,
                 "Data files (*.bin);;All files (*)");
     if(filename.isEmpty())
-        return;
+        return;\
+    if(nn_thread.has_started())
+    {
+        nn_thread.clear();
+        nn_timer->stop();
+    }
     nn_data.load_from_file(filename.toStdString().c_str());
     ui->data_pos->setMaximum(nn_data.size()-1);
 }
@@ -885,28 +900,16 @@ void MainWindow::on_save_nn_data_clicked()
     nn_data.save_to_file(filename.toStdString().c_str());
 }
 
-void MainWindow::on_add_nn_data_clicked()
-{
-    if(!w.get() || result_features.empty())
-        return;
-    nn_data.input = image::geometry<3>(32,32,3);
-    nn_data.output = image::geometry<3>(1,1,2);
-    for(int row = 0;row < result_features.size();++row)
-    {
-        std::vector<float> data;
-        w->get_picture(data,result_features[row][0],result_features[row][1],32);
-        nn_data.data.push_back(std::move(data));
-        nn_data.data_label.push_back(0);
-    }
-    ui->data_pos->setMaximum(nn_data.size()-1);
-    QMessageBox::information(this,"WS Recognier","Image added",0);
-}
-
 
 void MainWindow::on_del_nn_data_clicked()
 {
     if(nn_data.empty() || ui->data_pos->value() >= nn_data.size())
         return;
+    if(nn_thread.has_started())
+    {
+        nn_thread.clear();
+        nn_timer->stop();
+    }
     nn_data.data.erase(nn_data.data.begin() + ui->data_pos->value());
     nn_data.data_label.erase(nn_data.data_label.begin() + ui->data_pos->value());
     ui->data_pos->setMaximum(nn_data.size()-1);
@@ -922,7 +925,10 @@ void MainWindow::on_train_nn_clicked()
     }
 
     if(nn_thread.has_started())
+    {
         nn_thread.clear();
+        nn_timer->stop();
+    }
 
     train_scene.ml.nn.learning_rate = ui->learning_rate->value();
     train_scene.ml.nn.w_decay_rate = ui->w_decay->value();
@@ -966,6 +972,21 @@ void MainWindow::on_train_nn_clicked()
                           image::geometry<3>(aug_data.input[0],nn_data.input[1],nn_data.input[2])));
         }
 
+        /*
+        size = aug_data.size();
+        for(int i = 0;i < size;++i)
+        {
+            std::vector<float> new_data;
+            new_data.push_back(*(aug_data.data[i].end()-5));
+            new_data.push_back(*(aug_data.data[i].end()-4));
+            new_data.push_back(*(aug_data.data[i].end()-3));
+            new_data.push_back(*(aug_data.data[i].end()-2));
+            new_data.push_back(*(aug_data.data[i].end()-1));
+            new_data.insert(new_data.end(),aug_data.data[i].begin(),aug_data.data[i].end()-5);
+            aug_data.data.push_back(new_data);
+            aug_data.data_label.push_back(aug_data.data_label[i]);
+        }
+        */
         clock_t t = std::clock();
         train_scene.ml.nn.train(nn_data,nn_thread.terminated, on_enumerate_epoch);
         end_training = true;
@@ -996,8 +1017,15 @@ void MainWindow::on_nn_timer()
         nn_timer->stop();
 }
 
+
+
 void MainWindow::on_reset_nn_clicked()
 {
+    if(nn_thread.has_started())
+    {
+        nn_thread.clear();
+        nn_timer->stop();
+    }
     train_scene.ml.nn.reset();
     if(!(train_scene.ml.nn << ui->nn->text().toStdString()))
     {
@@ -1006,6 +1034,15 @@ void MainWindow::on_reset_nn_clicked()
         return;
     }
     train_scene.ml.nn.init_weights();
+}
+void MainWindow::on_clear_nn_clicked()
+{
+    if(nn_thread.has_started())
+    {
+        nn_thread.clear();
+        nn_timer->stop();
+    }
+    train_scene.ml.nn.reset();
 }
 
 
@@ -1052,7 +1089,60 @@ void MainWindow::on_data_pos_valueChanged(int value)
     text->moveBy(0,data_image.height());
 }
 
+void MainWindow::on_resolve_nn_data_clicked()
+{
+    for(int i = 0;i < nn_data.size();++i)
+        if(train_scene.ml.nn.predict_label(nn_data.data[i]) != nn_data.data_label[i])
+        {
+            ui->data_pos->setValue(i);
+            return;
+        }
+}
 
 
+void MainWindow::on_add_negative_nn_data_clicked()
+{
+    if(!w.get() || result_features.empty() ||
+            ui->recog_result->currentRow() >= result_features.size())
+        return;
+    int row = ui->recog_result->currentRow();
+    std::vector<float> data;
+    w->get_picture(data,result_features[row][0],result_features[row][1],32);
+    nn_data.data.push_back(std::move(data));
+    nn_data.data_label.push_back(0);
+    ui->data_pos->setMaximum(nn_data.size()-1);
+    ui->data_pos->setValue(nn_data.size()-1);
+    ui->recog_result->setFocus();
+}
 
+void MainWindow::on_add_positive_nn_data_clicked()
+{
+    if(!w.get() || result_features.empty() ||
+            ui->recog_result->currentRow() >= result_features.size())
+        return;
+    int row = ui->recog_result->currentRow();
+    std::vector<float> data;
+    w->get_picture(data,result_features[row][0],result_features[row][1],32);
+    nn_data.data.push_back(std::move(data));
+    nn_data.data_label.push_back(1);
+    ui->data_pos->setMaximum(nn_data.size()-1);
+    ui->data_pos->setValue(nn_data.size()-1);
+    ui->recog_result->setFocus();
+}
 
+void MainWindow::on_add_nn_data_clicked()
+{
+    if(!w.get() || result_features.empty())
+        return;
+    nn_data.input = image::geometry<3>(32,32,3);
+    nn_data.output = image::geometry<3>(1,1,2);
+    for(int row = 0;row < result_features.size();++row)
+    {
+        std::vector<float> data;
+        w->get_picture(data,result_features[row][0],result_features[row][1],32);
+        nn_data.data.push_back(std::move(data));
+        nn_data.data_label.push_back(0);
+    }
+    ui->data_pos->setMaximum(nn_data.size()-1);
+    QMessageBox::information(this,"WS Recognier","Image added",0);
+}

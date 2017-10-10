@@ -104,7 +104,6 @@ void train_model::cca(const image::color_image& I,
             for(int i = 0,index = 0;i < 3;++i)
                 for(int j = 0;j < I2.size();++j,++index)
                     data[index] = ((float)I2[j][2-i]/255.0f-0.5f)*2.0f;
-            std::cout << center_of_mass[index][0] << " " << center_of_mass[index][1] << " " << nn.predict_label(data) << std::endl;
             if(nn.predict_label(data) == 0)
                 continue;
         }

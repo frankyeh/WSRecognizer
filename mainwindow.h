@@ -36,6 +36,7 @@ private:
     image::thread thread;
     std::auto_ptr<QTimer> timer;
     bool terminated;
+    unsigned int added_results;
 private:
     image::basic_image<float,2> sdi_value;
     image::basic_image<unsigned char,2> sdi_contour;
@@ -157,6 +158,14 @@ private slots:
     void on_del_nn_data_clicked();
 
     void on_actionSave_Neural_Network_triggered();
+
+    void on_clear_nn_clicked();
+
+    void on_resolve_nn_data_clicked();
+
+    void on_add_negative_nn_data_clicked();
+
+    void on_add_positive_nn_data_clicked();
 
 public:
     Ui::MainWindow *ui;
