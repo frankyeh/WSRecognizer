@@ -6,12 +6,34 @@
 #include <QProgressDialog>
 #include <QAction>
 #include <QInputDialog>
+#include <QClipboard>
 #include "wsi.hpp"
 #include "rec_dialog.hpp"
 #include "gen_dialog.hpp"
+#include "libs/prog_interface_static_link.h"
 
 extern std::auto_ptr<QProgressDialog> progressDialog;
 extern image::color_image bar,colormap;
+void show_info_dialog(const std::string& title,const std::string& result)
+{
+    QMessageBox msgBox;
+    msgBox.setText(title.c_str());
+    msgBox.setDetailedText(result.c_str());
+    msgBox.setStandardButtons(QMessageBox::Ok|QMessageBox::Save);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    QPushButton *copyButton = msgBox.addButton("Copy To Clipboard", QMessageBox::ActionRole);
+    if(msgBox.exec() == QMessageBox::Save)
+    {
+        QString filename;
+        filename = QFileDialog::getSaveFileName(0,"Save as","report.txt","Text files (*.txt);;All files|(*)");
+        if(filename.isEmpty())
+            return;
+        std::ofstream out(filename.toLocal8Bit().begin());
+        out << result.c_str();
+    }
+    if (msgBox.clickedButton() == copyButton)
+        QApplication::clipboard()->setText(result.c_str());
+}
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -20,6 +42,7 @@ MainWindow::MainWindow(QWidget *parent) :
     main_scene(this),
     train_scene(this)
 {
+    reco_result_list << "X" << "Y" << "Span" << "Area" << "Shape" << "Intensity" << "NN";
     ui->setupUi(this);
     ui->tma_feature->clear();
     for(int i = 2;i < feature_count;++i)
@@ -44,6 +67,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->menuRecent_Files->addAction(recentFileActs[i]);
     }
 
+    ui->sort_result_by->addItems(reco_result_list);
 
 
     QObject::connect(ui->type,SIGNAL(currentIndexChanged(int)),this,SLOT(update_result()));
@@ -64,7 +88,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->save_model,SIGNAL(clicked()),this,SLOT(on_actionSave_Stain_Classifier_triggered()));
     QObject::connect(ui->load_nn,SIGNAL(clicked()),this,SLOT(on_actionLoad_Neural_Network_triggered()));
     QObject::connect(ui->save_nn,SIGNAL(clicked()),this,SLOT(on_actionSave_Neural_Network_triggered()));
-
+    QObject::connect(ui->sort_incremental,SIGNAL(clicked()),this,SLOT(on_sort_result_by_currentIndexChanged()));
 
     QStringList recent_file_list = settings.value("recent_files").toStringList();
     updateRecentList(recent_file_list);
@@ -121,6 +145,8 @@ void MainWindow::openFile(QString filename)
         QMessageBox::information(this,"error","Cannot open file",0);
         return;
     }
+    ui->recog_result->setRowCount(0);
+    result_features.clear();
 
     ui->NavigationWidget->show();
     ui->result_widget->setTabEnabled(0,true);
@@ -248,11 +274,35 @@ void MainWindow::on_recognize_stains_clicked()
     }
 }
 
+void MainWindow::on_sort_result_by_currentIndexChanged(int index)
+{
+    if(result_features.empty())
+        return;
+    int sort_index = ui->sort_result_by->currentIndex();
+    if(sort_index == -1)
+        return;
+    if(ui->sort_incremental->isChecked())
+        std::sort(result_features.begin(), result_features.end(),
+        [&](const std::vector<float>& a,const std::vector<float>& b)
+            {
+                return a[sort_index] < b[sort_index];
+            });
+    else
+        std::sort(result_features.begin(), result_features.end(),
+        [&](const std::vector<float>& a,const std::vector<float>& b)
+            {
+                return a[sort_index] > b[sort_index];
+            });
+    ui->recog_result->setRowCount(0);
+    std::vector<std::vector<float> > sorted_result;
+    sorted_result.swap(result_features);
+    addRecoResult(sorted_result);
+}
 void MainWindow::addRecoResult(const std::vector<std::vector<float> >& result)
 {
     if(!ui->target_location->isChecked())
         return;
-    ui->recog_result->setHorizontalHeaderLabels(QStringList() << "X" << "Y" << "Span" << "Area" << "Shape" << "Intensity");
+    ui->recog_result->setHorizontalHeaderLabels(reco_result_list);
 
     for(unsigned int index = 0;index < result.size();++index)
     {
@@ -267,8 +317,10 @@ void MainWindow::addRecoResult(const std::vector<std::vector<float> >& result)
         ui->recog_result->setItem(row, 3, new QTableWidgetItem(QString::number(result[index][3])));
         ui->recog_result->setItem(row, 4, new QTableWidgetItem(QString::number(result[index][4])));
         ui->recog_result->setItem(row, 5, new QTableWidgetItem(QString::number(result[index][5])));
+        ui->recog_result->setItem(row, 6, new QTableWidgetItem(QString::number(result[index][6])));
     }
     map_scene.update();
+    main_scene.update_image();
 }
 
 void MainWindow::on_run_clicked()
@@ -567,9 +619,8 @@ void MainWindow::on_open_reco_clicked()
         return;
     w->load_text_reco_result(filename.toLocal8Bit().begin());
 
-    ui->recog_result->clear();
+    ui->recog_result->setRowCount(0);
     result_features.clear();
-
     addRecoResult(w->result_features);
     update_sdi();
     update_color_bar();
@@ -854,6 +905,8 @@ void MainWindow::on_actionLoad_Neural_Network_triggered()
     }
     train_scene.ml.nn.load_from_file(filename.toStdString().c_str());
     ui->nn->setText(train_scene.ml.nn.get_layer_text().c_str());
+    std::vector<float> dummy(train_scene.ml.nn.get_input_dim().size());
+    show_nn(dummy,0);
 }
 
 void MainWindow::on_actionSave_Neural_Network_triggered()
@@ -998,21 +1051,23 @@ void MainWindow::on_train_nn_clicked()
     nn_timer->start();
 }
 
-void MainWindow::on_nn_timer()
+void MainWindow::show_nn(const std::vector<float>& data,unsigned char label)
 {
-    ui->training_error_label->setText(QString("%1 %").arg(training_error));
-    ui->test_error_label->setText(QString("%1 %").arg(test_error));
-
     image::color_image I2;
-    train_scene.ml.nn.to_image(I2,nn_data.data[ui->data_pos->value()],
-                   nn_data.data_label[ui->data_pos->value()],20,400);
+    train_scene.ml.nn.to_image(I2,data,label,20,400);
     QImage qimage((unsigned char*)&*I2.begin(),I2.width(),I2.height(),QImage::Format_RGB32);
     nn_image = qimage.scaled(I2.width()*2,I2.height()*2);
     nn_scene.setSceneRect(0, 0, nn_image.width(),nn_image.height());
     nn_scene.clear();
     nn_scene.setItemIndexMethod(QGraphicsScene::NoIndex);
     nn_scene.addRect(0, 0, nn_image.width(),nn_image.height(),QPen(),nn_image);
+}
 
+void MainWindow::on_nn_timer()
+{
+    ui->training_error_label->setText(QString("%1 %").arg(training_error));
+    ui->test_error_label->setText(QString("%1 %").arg(test_error));
+    show_nn(nn_data.data[ui->data_pos->value()],nn_data.data_label[ui->data_pos->value()]);
     if(end_training)
         nn_timer->stop();
 }
@@ -1083,6 +1138,7 @@ void MainWindow::on_data_pos_valueChanged(int value)
     if(!train_scene.ml.nn.empty() && nn_data.input.size() == train_scene.ml.nn.get_input_size())
     {
         info += QString(" NN:%1").arg(train_scene.ml.nn.predict_label(nn_data.data[ui->data_pos->value()]));
+        show_nn(nn_data.data[ui->data_pos->value()],nn_data.data_label[ui->data_pos->value()]);
     }
 
     QGraphicsTextItem* text = data_scene.addText(info);
@@ -1146,3 +1202,38 @@ void MainWindow::on_add_nn_data_clicked()
     ui->data_pos->setMaximum(nn_data.size()-1);
     QMessageBox::information(this,"WS Recognier","Image added",0);
 }
+
+void MainWindow::on_actionBatch_quality_check_triggered()
+{
+    QStringList filenames = QFileDialog::getOpenFileNames(
+                           this,
+                           "Open WSI",work_path,"WSI files (*.svs *.tif *.vms *.vmu *.scn *.mrxs *.ndpi);;All files (*)");
+    if (filenames.isEmpty())
+        return;
+
+    std::vector<std::string> result;
+    result.push_back("\tstain ratio");
+    for(int i = 0;i < filenames.size();++i)
+        result.push_back(QFileInfo(filenames[i]).baseName().toStdString());
+    begin_prog("reading");
+    for(int i = 0;check_prog(i,filenames.size());++i)
+    {
+        result[i+1] += "\t";
+        wsi w;
+        if(!w.open(filenames[i].toStdString().c_str()))
+        {
+            result[i+1] += "Cannot open";
+            continue;
+        }
+        result[i+1] += QString::number(w.color1_count/w.color2_count).toStdString();
+
+    }
+    std::string output;
+    for(int i = 0;i < result.size();++i)
+    {
+        output += result[i];
+        output += "\r\n";
+    }
+    show_info_dialog("Results",output);
+}
+

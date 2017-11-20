@@ -37,6 +37,7 @@ private:
     std::auto_ptr<QTimer> timer;
     bool terminated;
     unsigned int added_results;
+    QStringList reco_result_list;
 private:
     image::basic_image<float,2> sdi_value;
     image::basic_image<unsigned char,2> sdi_contour;
@@ -60,7 +61,7 @@ public:
     void keyPressEvent ( QKeyEvent * event );
 public slots:
     void on_nn_timer();
-
+    void show_nn(const std::vector<float>& data,unsigned char label);
 
 private slots:
     void on_action_Open_triggered();
@@ -166,6 +167,11 @@ private slots:
     void on_add_negative_nn_data_clicked();
 
     void on_add_positive_nn_data_clicked();
+
+    void on_actionBatch_quality_check_triggered();
+
+    void on_sort_result_by_currentIndexChanged(int index);
+
 
 public:
     Ui::MainWindow *ui;

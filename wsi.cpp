@@ -100,6 +100,16 @@ bool wsi::open(const char* file_name_)
 
 
     map_mask.resize(map_image.geometry());
+    {
+        image::grayscale_image gI = map_image;
+        image::basic_image<float,2> fI = gI;
+        image::ml::k_means<double,unsigned char> k(10);
+        k(fI.begin(),fI.end(),map_mask.begin());
+        image::grayscale_image I(map_mask.geometry());
+        for(int i = 0;i < map_mask.size();++i)
+            I[i] = (map_mask[i] == map_mask[0] ? 0 : 1);
+        I.swap(map_mask);
+    }
 
     for(const char * const * str = openslide_get_property_names(handle);*str;++str)
     {
@@ -361,9 +371,12 @@ void wsi::process_mask(void)
     }
     else
     {
-        image::morphology::defragment(map_mask);
+        image::morphology::smoothing(map_mask);
+        image::morphology::smoothing(map_mask);
+        image::morphology::smoothing(map_mask);
+        image::morphology::defragment(map_mask,0.01);
         image::negate(map_mask);
-        image::morphology::defragment(map_mask,0.001);
+        image::morphology::defragment(map_mask,0.01);
         image::negate(map_mask);
     }
 }
@@ -378,10 +391,8 @@ bool wsi::read(openslide_t*& cur_handle,image::color_image& main_image,unsigned 
         std::cout << "try re-open the WSI" << std::endl;
         cur_handle = openslide_open(file_name.c_str());
         if(!cur_handle)
-        {
             std::cout << "re-open WSI failed. Terminating" << std::endl;
-            return false;
-        }
+        return false;
     }
     if(intensity_normalization)
     {

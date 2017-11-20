@@ -1,11 +1,12 @@
 #include <QtWidgets/QApplication>
 #include <QLibrary>
+#include <QDir>
 #include "mainwindow.h"
 #include "openslide.h"
+#include "program_option.hpp"
 
-
-int rec(int ac, char *av[]);
-int gen(int ac, char *av[]);
+program_option po;
+int ana(void);
 
 
 openslide_can_open_type openslide_can_open = 0;
@@ -85,34 +86,19 @@ int main(int ac, char *av[])
     {
         {
             std::cout << "WS Recognizer " << __DATE__ << ", Fang-Cheng Yeh" << std::endl;
-
-        // options for general options
-            /*
-            po::options_description desc("options");
-            desc.add_options()
-            ("help", "help message")
-            ("action", po::value<std::string>(), "rec:whole slide recognition")
-            ("source", po::value<std::string>(), "assign the WSI file")
-            ;
-            po::variables_map vm;
-            po::store(po::command_line_parser(ac, av).options(desc).allow_unregistered().run(),vm);
-            if (vm.count("help"))
+            po.init(ac,av);
+            std::auto_ptr<QCoreApplication> cmd;
+            cmd.reset(new QCoreApplication(ac, av));
+            cmd->setOrganizationName("LabSolver");
+            cmd->setApplicationName("WS Recognizer");
+            if (!po.has("action") || !po.has("source"))
             {
-                std::cout << "example: perform recognition" << std::endl;
-                std::cout << "    --action=rec --source=G4_SYS05-678.ndpi --background=1.bmp --foreground=2.bmp " << std::endl;
+                std::cout << "invalid command, please assign --action and --source" << std::endl;
                 return 1;
             }
-
-            if (!vm.count("action") || !vm.count("source"))
-            {
-                std::cout << "invalid command, use --help for more detail" << std::endl;
-                return 1;
-            }
-            if(vm["action"].as<std::string>() == std::string("rec"))
-                return rec(ac,av);
-            if(vm["action"].as<std::string>() == std::string("gen"))
-                return gen(ac,av);
-                */
+            QDir::setCurrent(QFileInfo(po.get("source").c_str()).absolutePath());
+            if(po.get("action") == std::string("ana"))
+                ana();
         }
         return 1;
     }
