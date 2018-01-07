@@ -12,6 +12,7 @@ extern image::color_image bar,colormap;
 int ana(void)
 {
     std::string file_name = po.get("source");
+    std::cout << "Read file:" << QFileInfo(file_name.c_str()).baseName().toStdString() << std::endl;
     if(!QFileInfo(file_name.c_str()).exists())
     {
         std::cout << "Cannot find file:" << file_name <<std::endl;
