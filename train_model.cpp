@@ -99,17 +99,22 @@ void train_model::cca(const image::color_image& I,
             image::vector<2,int> from(center_of_mass[index][0]-shift,center_of_mass[index][1]-shift);
             image::vector<2,int> to(from);
             to += dim;
-            image::crop(I,I2,from,to);
-            std::vector<float> data(dim*dim*3);
-            for(int i = 0,index = 0;i < 3;++i)
-                for(int j = 0;j < I2.size();++j,++index)
-                    data[index] = ((float)I2[j][2-i]/255.0f-0.5f)*2.0f;
+            if(from[0] < 0 || from[1] < 0 || to[0] >= I.width() || to[1] >= I.height())
+                ;
+            else
+            {
+                image::crop(I,I2,from,to);
+                std::vector<float> data(dim*dim*3);
+                for(int i = 0,index = 0;i < 3;++i)
+                    for(int j = 0;j < I2.size();++j,++index)
+                        data[index] = ((float)I2[j][2-i]/255.0f-0.5f)*2.0f;
 
-            nn.predict(data);
-            float score = data[1]-data[0];
-            if(score < 0.0)
-                continue;
-            f.push_back(score);
+                nn.predict(data);
+                float score = data[1]-data[0];
+                if(score < 0.0)
+                    continue;
+                f.push_back(score);
+            }
         }
         else
             f.push_back(0.0f);

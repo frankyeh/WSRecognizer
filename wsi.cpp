@@ -629,6 +629,7 @@ bool wsi::load_text_reco_result(const char* file_name)
         std::istringstream values(line);
         std::copy(std::istream_iterator<float>(values),
                   std::istream_iterator<float>(),std::back_inserter(f));
+        f.resize(7);
         result_features.push_back(std::move(f));
     }
     return true;

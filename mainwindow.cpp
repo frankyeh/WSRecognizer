@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
+#include <QXmlStreamReader>
 #include <QMessageBox>
 #include <QGraphicsTextItem>
 #include <QProgressDialog>
@@ -205,6 +206,7 @@ void MainWindow::openFile(QString filename)
     updateRecentList(files);
     setWindowTitle(filename);
 
+    /*
     QString resultfile = filename+".txt";
     if(QFileInfo(resultfile).exists())
     {
@@ -212,6 +214,7 @@ void MainWindow::openFile(QString filename)
         update_sdi();
         update_color_bar();
     }
+    */
     main_scene.level = 0;
     main_scene.w = w.get();
     main_scene.x = w->dim[0]/2;
@@ -261,7 +264,7 @@ void MainWindow::on_recognize_stains_clicked()
         std::vector<std::vector<float> > new_features;
         train_scene.ml.recognize(main_scene.main_image,main_scene.result);
 
-        train_scene.ml.cca(main_scene.main_image,main_scene.result,w.get() ? w->pixel_size : 1,0,
+        train_scene.ml.cca(main_scene.main_image,main_scene.result,w.get() ? w->pixel_size : 1,16,
                            main_scene.x,main_scene.y,new_features);
         ui->test_result->setText(QString("%1 targets recognized").arg(new_features.size()));
         ui->show_recog->setChecked(true);
@@ -311,13 +314,10 @@ void MainWindow::addRecoResult(const std::vector<std::vector<float> >& result)
             continue;
         ui->recog_result->setRowCount(ui->recog_result->rowCount()+1);
         int row = ui->recog_result->rowCount()-1;
-        ui->recog_result->setItem(row, 0, new QTableWidgetItem(QString::number(result[index][0])));
-        ui->recog_result->setItem(row, 1, new QTableWidgetItem(QString::number(result[index][1])));
-        ui->recog_result->setItem(row, 2, new QTableWidgetItem(QString::number(result[index][2])));
-        ui->recog_result->setItem(row, 3, new QTableWidgetItem(QString::number(result[index][3])));
-        ui->recog_result->setItem(row, 4, new QTableWidgetItem(QString::number(result[index][4])));
-        ui->recog_result->setItem(row, 5, new QTableWidgetItem(QString::number(result[index][5])));
-        ui->recog_result->setItem(row, 6, new QTableWidgetItem(QString::number(result[index][6])));
+        for(int i = 0;i < 7;++i)
+            ui->recog_result->setItem(row, i,
+                new QTableWidgetItem(QString::number((i < result[index].size()) ? result[index][i] : 0)));
+
     }
     map_scene.update();
     main_scene.update_image();
@@ -614,16 +614,52 @@ void MainWindow::on_open_reco_clicked()
         return;
     QString filename = QFileDialog::getOpenFileName(
                            this,
-                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","text files (*.txt);;All files (*)");
+                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","text files (*.txt);;XML files (*.xml);;All files (*)");
     if (filename.isEmpty())
         return;
-    w->load_text_reco_result(filename.toLocal8Bit().begin());
+    if(QFileInfo(filename).suffix().toLower() == "xml")
+    {
+        std::shared_ptr<QFile> xmlFile(new QFile(filename));
+        if (!xmlFile->open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            QMessageBox::critical(this,"Load XML File Problem",
+            "Couldn't open the file",QMessageBox::Ok);
+            return;
+        }
+        std::shared_ptr<QXmlStreamReader> xmlReader(new QXmlStreamReader(xmlFile.get()));
 
-    ui->recog_result->setRowCount(0);
-    result_features.clear();
-    addRecoResult(w->result_features);
-    update_sdi();
-    update_color_bar();
+        std::vector<std::vector<float> > result_features;
+        while(!xmlReader->atEnd() && !xmlReader->hasError())
+        {
+            QXmlStreamReader::TokenType token = xmlReader->readNext();
+            if(token == QXmlStreamReader::StartDocument) {
+                continue;
+            }
+                //If token is StartElement - read it
+                if(token == QXmlStreamReader::StartElement)
+                {
+                    if(xmlReader->name() == "Vertex") {
+                        std::vector<float> f(7);
+                        f[0] = xmlReader->attributes().value("X").toFloat();
+                        f[1] = xmlReader->attributes().value("Y").toFloat();
+                        result_features.push_back(f);
+                    }
+                }
+        }
+        xmlReader->clear();
+        xmlFile->close();
+        w->result_features.swap(result_features);
+    }
+    else
+        w->load_text_reco_result(filename.toLocal8Bit().begin());
+    if(w->result_features.size() > 0)
+    {
+        ui->recog_result->setRowCount(0);
+        result_features.clear();
+        addRecoResult(w->result_features);
+        update_sdi();
+        update_color_bar();
+    }
 }
 
 void MainWindow::on_save_reco_clicked()
@@ -989,6 +1025,8 @@ void MainWindow::on_train_nn_clicked()
     train_scene.ml.nn.momentum = ui->momentum->value();
     train_scene.ml.nn.batch_size = ui->batch_size->value();
     train_scene.ml.nn.epoch = ui->epoch->value();
+    train_scene.ml.nn.repeat = ui->repeat_training->value();
+
     end_training = false;
     test_error = 100;
     training_error = 100;
@@ -1024,24 +1062,7 @@ void MainWindow::on_train_nn_clicked()
             image::swap_xy(image::make_image(&aug_data.data.back()[0],
                           image::geometry<3>(aug_data.input[0],nn_data.input[1],nn_data.input[2])));
         }
-
-        /*
-        size = aug_data.size();
-        for(int i = 0;i < size;++i)
-        {
-            std::vector<float> new_data;
-            new_data.push_back(*(aug_data.data[i].end()-5));
-            new_data.push_back(*(aug_data.data[i].end()-4));
-            new_data.push_back(*(aug_data.data[i].end()-3));
-            new_data.push_back(*(aug_data.data[i].end()-2));
-            new_data.push_back(*(aug_data.data[i].end()-1));
-            new_data.insert(new_data.end(),aug_data.data[i].begin(),aug_data.data[i].end()-5);
-            aug_data.data.push_back(new_data);
-            aug_data.data_label.push_back(aug_data.data_label[i]);
-        }
-        */
-        clock_t t = std::clock();
-        train_scene.ml.nn.train(nn_data,nn_thread.terminated, on_enumerate_epoch);
+        train_scene.ml.nn.train(aug_data,nn_thread.terminated, on_enumerate_epoch);
         end_training = true;
     });
 

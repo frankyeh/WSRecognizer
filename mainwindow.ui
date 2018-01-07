@@ -343,8 +343,8 @@
                  <rect>
                   <x>0</x>
                   <y>0</y>
-                  <width>446</width>
-                  <height>235</height>
+                  <width>98</width>
+                  <height>87</height>
                  </rect>
                 </property>
                 <attribute name="label">
@@ -383,7 +383,7 @@
                  <rect>
                   <x>0</x>
                   <y>0</y>
-                  <width>100</width>
+                  <width>98</width>
                   <height>30</height>
                  </rect>
                 </property>
@@ -661,8 +661,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>448</width>
-                <height>241</height>
+                <width>520</width>
+                <height>244</height>
                </rect>
               </property>
               <attribute name="label">
@@ -741,20 +741,6 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QLabel" name="label_18">
-                   <property name="text">
-                    <string>Layers</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="nn">
-                   <property name="text">
-                    <string>36,36,3|conv,4,12,relu|full,2</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <widget class="QPushButton" name="nn_filter_results">
                    <property name="maximumSize">
                     <size>
@@ -771,10 +757,225 @@
                    </property>
                   </widget>
                  </item>
+                 <item>
+                  <widget class="QLabel" name="label_18">
+                   <property name="text">
+                    <string>Layers</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="nn">
+                   <property name="text">
+                    <string>36,36,3|conv,4,12,relu|full,2</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="train_nn">
+                   <property name="maximumSize">
+                    <size>
+                     <width>48</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Train</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="reset_nn">
+                   <property name="maximumSize">
+                    <size>
+                     <width>48</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Reset</string>
+                   </property>
+                  </widget>
+                 </item>
                 </layout>
                </item>
                <item>
                 <widget class="QGraphicsView" name="nn_view"/>
+               </item>
+               <item>
+                <layout class="QGridLayout" name="gridLayout">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <item row="0" column="6">
+                  <widget class="QLabel" name="label_13">
+                   <property name="text">
+                    <string>momentum</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="3">
+                  <widget class="QDoubleSpinBox" name="w_decay">
+                   <property name="decimals">
+                    <number>4</number>
+                   </property>
+                   <property name="maximum">
+                    <double>0.900000000000000</double>
+                   </property>
+                   <property name="singleStep">
+                    <double>0.010000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.000100000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QDoubleSpinBox" name="learning_rate">
+                   <property name="decimals">
+                    <number>4</number>
+                   </property>
+                   <property name="minimum">
+                    <double>0.000100000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>10.000000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.001000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>Learning rate</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QLabel" name="label_8">
+                   <property name="text">
+                    <string>weight decay</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="4">
+                  <widget class="QLabel" name="label_9">
+                   <property name="text">
+                    <string>bias decay</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="5">
+                  <widget class="QDoubleSpinBox" name="b_decay">
+                   <property name="minimum">
+                    <double>0.010000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>0.900000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.200000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="7">
+                  <widget class="QDoubleSpinBox" name="momentum">
+                   <property name="maximum">
+                    <double>0.990000000000000</double>
+                   </property>
+                   <property name="singleStep">
+                    <double>0.100000000000000</double>
+                   </property>
+                   <property name="value">
+                    <double>0.900000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="label_16">
+                   <property name="text">
+                    <string>batch size</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QSpinBox" name="batch_size">
+                   <property name="minimum">
+                    <number>10</number>
+                   </property>
+                   <property name="maximum">
+                    <number>1024</number>
+                   </property>
+                   <property name="value">
+                    <number>64</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="2">
+                  <widget class="QLabel" name="label_17">
+                   <property name="text">
+                    <string>epoch</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="3">
+                  <widget class="QSpinBox" name="epoch">
+                   <property name="minimum">
+                    <number>1</number>
+                   </property>
+                   <property name="maximum">
+                    <number>10000</number>
+                   </property>
+                   <property name="value">
+                    <number>20</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="4">
+                  <widget class="QLabel" name="label_22">
+                   <property name="text">
+                    <string>repeat</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="5">
+                  <widget class="QSpinBox" name="repeat_training">
+                   <property name="maximum">
+                    <number>1000</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="6" column="0">
+                  <widget class="QLabel" name="label_19">
+                   <property name="text">
+                    <string>training error</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="6" column="1">
+                  <widget class="QLabel" name="training_error_label">
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="6" column="3">
+                  <widget class="QLabel" name="label_20">
+                   <property name="text">
+                    <string>test error</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="6" column="4">
+                  <widget class="QLabel" name="test_error_label">
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </widget>
@@ -899,231 +1100,6 @@
                   <enum>Qt::Horizontal</enum>
                  </property>
                 </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="page_6">
-              <property name="geometry">
-               <rect>
-                <x>0</x>
-                <y>0</y>
-                <width>188</width>
-                <height>196</height>
-               </rect>
-              </property>
-              <attribute name="label">
-               <string>Training Parameters</string>
-              </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_16">
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_22">
-                 <property name="spacing">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QPushButton" name="train_nn">
-                   <property name="text">
-                    <string>Train</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="reset_nn">
-                   <property name="text">
-                    <string>Reset</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_8">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QFormLayout" name="formLayout_3">
-                 <property name="verticalSpacing">
-                  <number>0</number>
-                 </property>
-                 <item row="1" column="0">
-                  <widget class="QLabel" name="label">
-                   <property name="text">
-                    <string>Learning rate</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="1">
-                  <widget class="QDoubleSpinBox" name="learning_rate">
-                   <property name="decimals">
-                    <number>4</number>
-                   </property>
-                   <property name="minimum">
-                    <double>0.000100000000000</double>
-                   </property>
-                   <property name="maximum">
-                    <double>10.000000000000000</double>
-                   </property>
-                   <property name="value">
-                    <double>0.001000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="0">
-                  <widget class="QLabel" name="label_8">
-                   <property name="text">
-                    <string>weight decay</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="1">
-                  <widget class="QDoubleSpinBox" name="w_decay">
-                   <property name="decimals">
-                    <number>4</number>
-                   </property>
-                   <property name="maximum">
-                    <double>0.900000000000000</double>
-                   </property>
-                   <property name="singleStep">
-                    <double>0.010000000000000</double>
-                   </property>
-                   <property name="value">
-                    <double>0.000100000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="3" column="0">
-                  <widget class="QLabel" name="label_9">
-                   <property name="text">
-                    <string>bias decay</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="3" column="1">
-                  <widget class="QDoubleSpinBox" name="b_decay">
-                   <property name="minimum">
-                    <double>0.010000000000000</double>
-                   </property>
-                   <property name="maximum">
-                    <double>0.900000000000000</double>
-                   </property>
-                   <property name="value">
-                    <double>0.200000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="4" column="0">
-                  <widget class="QLabel" name="label_13">
-                   <property name="text">
-                    <string>momentum</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="4" column="1">
-                  <widget class="QDoubleSpinBox" name="momentum">
-                   <property name="maximum">
-                    <double>0.990000000000000</double>
-                   </property>
-                   <property name="singleStep">
-                    <double>0.100000000000000</double>
-                   </property>
-                   <property name="value">
-                    <double>0.900000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="5" column="0">
-                  <widget class="QLabel" name="label_16">
-                   <property name="text">
-                    <string>batch size</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="5" column="1">
-                  <widget class="QSpinBox" name="batch_size">
-                   <property name="minimum">
-                    <number>10</number>
-                   </property>
-                   <property name="maximum">
-                    <number>1024</number>
-                   </property>
-                   <property name="value">
-                    <number>64</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="6" column="0">
-                  <widget class="QLabel" name="label_17">
-                   <property name="text">
-                    <string>epoch</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="6" column="1">
-                  <widget class="QSpinBox" name="epoch">
-                   <property name="minimum">
-                    <number>1</number>
-                   </property>
-                   <property name="maximum">
-                    <number>10000</number>
-                   </property>
-                   <property name="value">
-                    <number>20</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="7" column="0">
-                  <widget class="QLabel" name="label_19">
-                   <property name="text">
-                    <string>training error</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="8" column="0">
-                  <widget class="QLabel" name="label_20">
-                   <property name="text">
-                    <string>test error</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="7" column="1">
-                  <widget class="QLabel" name="training_error_label">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="8" column="1">
-                  <widget class="QLabel" name="test_error_label">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
                </item>
               </layout>
              </widget>
@@ -1886,8 +1862,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>298</width>
-          <height>257</height>
+          <width>290</width>
+          <height>78</height>
          </rect>
         </property>
         <attribute name="label">
