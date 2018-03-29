@@ -30,15 +30,65 @@ int ana(void)
         return -1;
     }
 
-    std::string cmd = po.get("command");
-    if(cmd == "get_stain_info")
     {
         std::cout << "stain 1 code" << w.color1_code << std::endl;
         std::cout << "stain 1 count=" << (int)w.color1_count << std::endl;
         std::cout << "stain 2 code" << w.color2_code << std::endl;
         std::cout << "stain 2 count=" << (int)w.color2_count << std::endl;
         std::cout << "stain ratio=" << (float)w.color1_count/(float)w.color2_count << std::endl;
-        return 1;
     }
+    if(po.has("check_stain"))
+    {
+        std::string text = po.get("check_stain");
+        std::cout << "check stain=" << text << std::endl;
+        std::replace(text.begin(),text.end(),',',' ');
+        std::istringstream in(text);
+        int code1,code2;
+        in >> code1 >> code2;
+        code1 -= w.color1_code;
+        code2 -= w.color2_code;
+        if(std::abs(code1) > 15 || std::abs(code2) > 15)
+        {
+            std::cout << "Check stain failed. The WSI has a different stain profile" << std::endl;
+            return false;
+        }
+    }
+
+
+    if(po.has("color_model") && po.has("nn"))
+    {
+        std::cout << "Color model=" << po.get("color_model") << std::endl;
+        std::cout << "Neuroal Network=" << po.get("color_model") << std::endl;
+        if(!w.ml.load_from_file(po.get("color_model").c_str()))
+        {
+            std::cout << "Failed to load color model" << std::endl;
+            return 0;
+        }
+        w.ml.nn.load_from_file<gz_istream>(po.get("nn").c_str());
+        bool terminated = false;
+        std::cout << "Processing whole slide image. Please wait..." << std::endl;
+        w.run(4000,200,std::thread::hardware_concurrency(),&terminated);
+        std::string output_filename = po.get("source");
+        output_filename += ".csv";
+        if(po.has("output"))
+            output_filename = po.get("output");
+        std::multimap<float,int,std::greater<float> > sorted_result;
+        for(int i = 0;i < w.result_features.size();++i)
+            sorted_result.insert(std::make_pair(w.result_features[i].back(),i));
+        std::ofstream out(output_filename.c_str());
+        out << "x,y,span,area,shape,ig,cnn" << std::endl;
+        auto result = sorted_result.begin();
+        for(int i = 0;i < 100;++i,++result)
+        {
+            if(result == sorted_result.end())
+                break;
+            for(int j = 0;j < w.result_features[result->second].size();++j)
+                out << w.result_features[result->second][j] << ",";
+            out << std::endl;
+        }
+    }
+
+
+
     return 1;
 }

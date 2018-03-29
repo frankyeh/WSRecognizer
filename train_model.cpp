@@ -89,12 +89,12 @@ void train_model::cca(const image::color_image& I,
         float intensity = (sum_out - sum_in)/255.0;
         std::vector<float> f;
         // feature list 0:x 1:y 2:span 3:area 4:shape 5:intensity gradient 6: cnn
-        f.push_back(center_of_mass[index][0]+x);
-        f.push_back(center_of_mass[index][1]+y);
-        f.push_back(span*pixel_size);
-        f.push_back(regions[index].size()*pixel_size*pixel_size);
-        f.push_back(regions[index].size()/span/span);
-        f.push_back(intensity);
+        f.push_back(center_of_mass[index][0]+x); // 0:x
+        f.push_back(center_of_mass[index][1]+y); // 1:y
+        f.push_back(span*pixel_size); // 2:span
+        f.push_back(regions[index].size()*pixel_size*pixel_size); // 3:area
+        f.push_back(regions[index].size()/span/span); // 4: shape
+        f.push_back(intensity); // 5: ig
         if(!fulfill_param(f))
             continue;
         if(!nn.empty())
@@ -116,11 +116,11 @@ void train_model::cca(const image::color_image& I,
                 float score = data[1]-data[0];
                 if(apply_ml && score < 0.0)
                     continue;
-                f.push_back(score);
+                f.push_back(score); // 6:cnn
             }
         }
         else
-            f.push_back(0.0f);
+            f.push_back(0.0f); // 6:cnn
         features.push_back(std::move(f));
     }
 }
