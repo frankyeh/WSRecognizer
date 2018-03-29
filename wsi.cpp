@@ -633,6 +633,9 @@ bool wsi::load_text_reco_result(const char* file_name)
     std::string line;
     while(std::getline(in,line))
     {
+        if(result_features.empty() && line[0] == 'x')
+            continue; // skip first title line
+        std::replace(line.begin(),line.end(),',',' '); // for csv
         std::vector<float> f;
         std::istringstream values(line);
         std::copy(std::istream_iterator<float>(values),

@@ -616,7 +616,7 @@ void MainWindow::on_open_reco_clicked()
         return;
     QString filename = QFileDialog::getOpenFileName(
                            this,
-                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","location files (*.txt *.xml);;All files (*)");
+                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","location files (*.txt *.csv *.xml);;All files (*)");
     if (filename.isEmpty())
         return;
     if(QFileInfo(filename).suffix().toLower() == "xml")
