@@ -37,7 +37,7 @@ public:
 protected:
     bool moved;
     unsigned int lx,ly;
-    //void mouseDoubleClickEvent ( QGraphicsSceneMouseEvent * mouseEvent );
+    void mouseDoubleClickEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent );

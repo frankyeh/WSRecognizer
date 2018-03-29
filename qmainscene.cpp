@@ -140,6 +140,20 @@ void QMainScene::update_image(void)
     addRect(0, 0, output_image.width(),output_image.height(),QPen(),output_image);
 
 }
+void QMainScene::mouseDoubleClickEvent ( QGraphicsSceneMouseEvent * mouseEvent )
+{
+    if(mouseEvent->button() == Qt::LeftButton)
+    {
+        float r = w->get_r(level);
+        std::vector<float> new_location(7);
+        new_location[0] = mouseEvent->scenePos().x()*r+x;
+        new_location[1] = mouseEvent->scenePos().y()*r+y;
+        std::vector<std::vector<float> > result;
+        result.push_back(new_location);
+        main_window->addRecoResult(result);
+    }
+}
+
 void QMainScene::mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
     moved = false;

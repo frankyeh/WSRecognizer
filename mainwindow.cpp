@@ -12,6 +12,7 @@
 #include "rec_dialog.hpp"
 #include "gen_dialog.hpp"
 #include "libs/prog_interface_static_link.h"
+#include "libs/gzip_interface.hpp"
 
 extern std::auto_ptr<QProgressDialog> progressDialog;
 extern image::color_image bar,colormap;
@@ -171,9 +172,9 @@ void MainWindow::openFile(QString filename)
         S1.fill(QColor(w->color1.color));
         S2.fill(QColor(w->color2.color));
         info_scene.addText(QString("Ratio %1:1").arg((int)(w->color1_count/w->color2_count)))->moveBy(qimage.width()+7,0);
-        info_scene.addText(QString("Stain 1"))->moveBy(qimage.width()+7,20);
+        info_scene.addText(QString("Stain: %1").arg(w->color1_code))->moveBy(qimage.width()+7,20);
         info_scene.addRect(qimage.width()+10,40,35,35,QPen(),S1);
-        info_scene.addText(QString("Stain 2"))->moveBy(qimage.width()+7,75);
+        info_scene.addText(QString("Stain: %1").arg(w->color2_code))->moveBy(qimage.width()+7,75);
         info_scene.addRect(qimage.width()+10,95,35,35,QPen(),S2);
 
 
@@ -264,8 +265,9 @@ void MainWindow::on_recognize_stains_clicked()
         std::vector<std::vector<float> > new_features;
         train_scene.ml.recognize(main_scene.main_image,main_scene.result);
 
-        train_scene.ml.cca(main_scene.main_image,main_scene.result,w.get() ? w->pixel_size : 1,16,
-                           main_scene.x,main_scene.y,new_features);
+        train_scene.ml.cca(main_scene.main_image,main_scene.result,w.get() ? w->pixel_size : 1,
+                           std::max<int>(16,train_scene.ml.nn.get_input_dim()[0]),
+                           main_scene.x,main_scene.y,new_features,false,false,w->color_m_inv);
         ui->test_result->setText(QString("%1 targets recognized").arg(new_features.size()));
         ui->show_recog->setChecked(true);
         main_scene.update_image();
@@ -614,7 +616,7 @@ void MainWindow::on_open_reco_clicked()
         return;
     QString filename = QFileDialog::getOpenFileName(
                            this,
-                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","text files (*.txt);;XML files (*.xml);;All files (*)");
+                           "Open results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".txt","location files (*.txt *.xml);;All files (*)");
     if (filename.isEmpty())
         return;
     if(QFileInfo(filename).suffix().toLower() == "xml")
@@ -671,23 +673,6 @@ void MainWindow::on_save_reco_clicked()
     if (filename.isEmpty())
         return;
 
-    if(QFileInfo(filename).suffix() == "bin")
-    {
-
-        image::ml::network_data<float,unsigned char> nn_data;
-        nn_data.input = image::geometry<3>(32,32,3);
-        nn_data.output = image::geometry<3>(1,1,2);
-        for(int row = 0;row < result_features.size();++row)
-        {
-            std::vector<float> data;
-            w->get_picture(data,result_features[row][0],result_features[row][1],32);
-            nn_data.data.push_back(std::move(data));
-            nn_data.data_label.push_back(0);
-        }
-        nn_data.save_to_file(filename.toStdString().c_str());
-        return;
-    }
-
     if(QFileInfo(filename).suffix() == "jpg")
     {
         for(int row = 0;row < result_features.size();++row)
@@ -724,11 +709,21 @@ void MainWindow::on_save_density_image_clicked()
 
 void MainWindow::on_del_row_clicked()
 {
-    if(ui->recog_result->currentRow() < 0)
-        return;
-    result_features.erase(result_features.begin()+ui->recog_result->currentRow());
-    ui->recog_result->removeRow(ui->recog_result->currentRow());
-    map_scene.update();
+    QModelIndexList sel = ui->recog_result->selectionModel()->selectedRows();
+    std::vector<int> rows;
+    for(int i = 0;i < sel.size();++i)
+        rows.push_back(sel.at(i).row());
+    std::sort(rows.begin(),rows.end(),std::greater<int>());
+    for(int i = 0;i < rows.size();++i)
+    {
+        int row = rows[i];
+        if(row >= 0 && row < result_features.size())
+        {
+            result_features.erase(result_features.begin()+row);
+            ui->recog_result->removeRow(row);
+        }
+    }
+    ui->recog_result->clearSelection();
 }
 
 void MainWindow::on_del_all_clicked()
@@ -931,7 +926,7 @@ void MainWindow::on_actionLoad_Neural_Network_triggered()
     filename = QFileDialog::getOpenFileName(
                 this,
                 "Open network",work_path,
-                "Network files (*.net);;All files (*)");
+                "Network files (*.net *.net.gz);;All files (*)");
     if(filename.isEmpty())
         return;
     if(nn_thread.has_started())
@@ -939,7 +934,7 @@ void MainWindow::on_actionLoad_Neural_Network_triggered()
         nn_thread.clear();
         nn_timer->stop();
     }
-    train_scene.ml.nn.load_from_file(filename.toStdString().c_str());
+    train_scene.ml.nn.load_from_file<gz_istream>(filename.toStdString().c_str());
     ui->nn->setText(train_scene.ml.nn.get_layer_text().c_str());
     std::vector<float> dummy(train_scene.ml.nn.get_input_dim().size());
     show_nn(dummy,0);
@@ -951,10 +946,10 @@ void MainWindow::on_actionSave_Neural_Network_triggered()
     filename = QFileDialog::getSaveFileName(
                 this,
                 "Save network",work_path,
-                "Network files (*.net);;All files (*)");
+                "Network files (*.net *.net.gz);;All files (*)");
     if(filename.isEmpty())
         return;
-    train_scene.ml.nn.save_to_file(filename.toStdString().c_str());
+    train_scene.ml.nn.save_to_file<gz_ostream>(filename.toStdString().c_str());
 }
 
 void MainWindow::on_load_nn_data_clicked()
@@ -963,15 +958,15 @@ void MainWindow::on_load_nn_data_clicked()
     filename = QFileDialog::getOpenFileName(
                 this,
                 "Open data",work_path,
-                "Data files (*.bin);;All files (*)");
+                "Data files (*.bin *.bin.gz);;All files (*)");
     if(filename.isEmpty())
-        return;\
+        return;
     if(nn_thread.has_started())
     {
         nn_thread.clear();
         nn_timer->stop();
     }
-    nn_data.load_from_file(filename.toStdString().c_str());
+    nn_data.load_from_file<gz_istream>(filename.toStdString().c_str());
     ui->data_pos->setMaximum(nn_data.size()-1);
 }
 
@@ -983,10 +978,10 @@ void MainWindow::on_save_nn_data_clicked()
     filename = QFileDialog::getSaveFileName(
                 this,
                 "Save data",work_path,
-                "Data files (*.bin);;All files (*)");
+                "Data files (*.bin *.bin.gz);;All files (*)");
     if(filename.isEmpty())
         return;
-    nn_data.save_to_file(filename.toStdString().c_str());
+    nn_data.save_to_file<gz_ostream>(filename.toStdString().c_str());
 }
 
 
@@ -1032,36 +1027,23 @@ void MainWindow::on_train_nn_clicked()
     training_error = 100;
     nn_thread.run([&]()
     {
+        image::ml::network_data<float,unsigned char> aug_data(nn_data);
         auto on_enumerate_epoch = [&](){
-            test_error = train_scene.ml.nn.test_error(nn_data.data,nn_data.data_label);
+            static int i = 0;
+            ++i;
+            if(i & 1)
+                for(int j = 0;j < aug_data.size();++j)
+                    image::flip_x(image::make_image(&aug_data.data[j][0],aug_data.input));
+            if(i & 2)
+                for(int j = 0;j < aug_data.size();++j)
+                    image::flip_y(image::make_image(&aug_data.data[j][0],aug_data.input));
+            if(i & 4)
+                for(int j = 0;j < aug_data.size();++j)
+                    image::swap_xy(image::make_image(&aug_data.data[j][0],aug_data.input));
+            //test_error = train_scene.ml.nn.test_error(aug_data.data,aug_data.data_label);
             training_error = train_scene.ml.nn.get_training_error();
             std::cout << "training error:" << training_error << "  test error:" << test_error << std::endl;
         };
-        image::ml::network_data<float,unsigned char> aug_data(nn_data);
-        int size = aug_data.size();
-        for(int i = 0;i < size;++i)
-        {
-            aug_data.data.push_back(aug_data.data[i]);
-            aug_data.data_label.push_back(aug_data.data_label[i]);
-            image::flip_x(image::make_image(&aug_data.data.back()[0],
-                          image::geometry<3>(aug_data.input[0],nn_data.input[1],nn_data.input[2])));
-        }
-        size = aug_data.size();
-        for(int i = 0;i < size;++i)
-        {
-            aug_data.data.push_back(aug_data.data[i]);
-            aug_data.data_label.push_back(aug_data.data_label[i]);
-            image::flip_y(image::make_image(&aug_data.data.back()[0],
-                          image::geometry<3>(aug_data.input[0],nn_data.input[1],nn_data.input[2])));
-        }
-        size = aug_data.size();
-        for(int i = 0;i < size;++i)
-        {
-            aug_data.data.push_back(aug_data.data[i]);
-            aug_data.data_label.push_back(aug_data.data_label[i]);
-            image::swap_xy(image::make_image(&aug_data.data.back()[0],
-                          image::geometry<3>(aug_data.input[0],nn_data.input[1],nn_data.input[2])));
-        }
         train_scene.ml.nn.train(aug_data,nn_thread.terminated, on_enumerate_epoch);
         end_training = true;
     });
@@ -1075,9 +1057,9 @@ void MainWindow::on_train_nn_clicked()
 void MainWindow::show_nn(const std::vector<float>& data,unsigned char label)
 {
     image::color_image I2;
-    train_scene.ml.nn.to_image(I2,data,label,20,400);
+    train_scene.ml.nn.to_image(I2,data,label,20,std::max<int>(250,ui->nn_view->width()-20));
     QImage qimage((unsigned char*)&*I2.begin(),I2.width(),I2.height(),QImage::Format_RGB32);
-    nn_image = qimage.scaled(I2.width()*2,I2.height()*2);
+    nn_image = qimage.copy();
     nn_scene.setSceneRect(0, 0, nn_image.width(),nn_image.height());
     nn_scene.clear();
     nn_scene.setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -1110,6 +1092,8 @@ void MainWindow::on_reset_nn_clicked()
         return;
     }
     train_scene.ml.nn.init_weights();
+    std::vector<float> dummy(train_scene.ml.nn.get_input_dim().size());
+    show_nn(dummy,0);
 }
 void MainWindow::on_clear_nn_clicked()
 {
@@ -1119,6 +1103,8 @@ void MainWindow::on_clear_nn_clicked()
         nn_timer->stop();
     }
     train_scene.ml.nn.reset();
+    std::vector<float> dummy(train_scene.ml.nn.get_input_dim().size());
+    show_nn(dummy,0);
 }
 
 
@@ -1135,8 +1121,8 @@ void MainWindow::on_data_pos_valueChanged(int value)
 
 
 
-    data_image = qimage.scaledToHeight(std::max<int>(qimage.height(),data_scene.views()[0]->height()-50));
-    data_scene.setSceneRect(0, 0, data_image.width()*2,data_image.height()+20);
+    data_image = qimage.scaledToWidth(std::max<int>(16,data_scene.views()[0]->width()*0.5-15));
+    data_scene.setSceneRect(0, 0, data_image.width()*2,data_image.height()+40);
     data_scene.clear();
     data_scene.setItemIndexMethod(QGraphicsScene::NoIndex);
     data_scene.addRect(0, 0, data_image.width(),data_image.height(),QPen(),data_image);
@@ -1146,6 +1132,32 @@ void MainWindow::on_data_pos_valueChanged(int value)
         image::color_image I2(image::geometry<2>(nn_data.input[0],nn_data.input[1]));
         int shift1 = I2.size();
         int shift2 = shift1 + shift1;
+        if(w.get())
+        {
+            for(int i = 0;i < I2.size();++i)
+            {
+                image::vector<3> v(data[i],data[i+shift1],data[i+shift2]);
+                v += 0.5;
+                v[0] *= 570.19f;
+                v[1] *= 285.1f/3.0f;
+                v[2] *= 285.1f/3.0f;
+                v.rotate(w->color_m);
+                if(v[0] > 255.0)
+                    v[0] = 255.0f;
+                if(v[1] > 255.0)
+                    v[1] = 255.0f;
+                if(v[2] > 255.0)
+                    v[2] = 255.0f;
+                if(v[0] < 0.0f)
+                    v[0] = 0.0f;
+                if(v[1] < 0.0f)
+                    v[1] = 0.0f;
+                if(v[2] < 0.0f)
+                    v[2] = 0.0f;
+                I2[i] = image::rgb_color(v[2],v[1],v[0]);
+            }
+        }
+        else
         for(int i = 0;i < I2.size();++i)
             I2[i] = image::rgb_color(I[i],I[i+shift1],I[i+shift2]);
         QImage qimage2((unsigned char*)&*I2.begin(),I2.width(),I2.height(),QImage::Format_RGB32);
@@ -1153,17 +1165,17 @@ void MainWindow::on_data_pos_valueChanged(int value)
         data_scene.addRect(data_image.width(), 0, data_image2.width(),data_image2.height(),QPen(),data_image2);
     }
     QString info;
-    info = QString("%1/%2 Label=%3").arg(ui->data_pos->value()+1).
-                                     arg(nn_data.size()).
-                                     arg((int)nn_data.data_label[ui->data_pos->value()]);
-    if(!train_scene.ml.nn.empty() && nn_data.input.size() == train_scene.ml.nn.get_input_size())
-    {
-        info += QString(" NN:%1").arg(train_scene.ml.nn.predict_label(nn_data.data[ui->data_pos->value()]));
-        show_nn(nn_data.data[ui->data_pos->value()],nn_data.data_label[ui->data_pos->value()]);
-    }
-
+    info = QString("%1/%2").arg(ui->data_pos->value()+1).
+                                     arg(nn_data.size());
     QGraphicsTextItem* text = data_scene.addText(info);
     text->moveBy(0,data_image.height());
+    info = QString("Label=%1 ").arg((int)nn_data.data_label[ui->data_pos->value()]);
+
+    if(!train_scene.ml.nn.empty() && nn_data.input.size() == train_scene.ml.nn.get_input_size())
+        info += QString("NN:%1").arg(train_scene.ml.nn.predict_label(nn_data.data[ui->data_pos->value()]));
+    QGraphicsTextItem* text2 = data_scene.addText(info);
+    text2->moveBy(0,data_image.height()+20);
+
 }
 
 void MainWindow::on_resolve_nn_data_clicked()
@@ -1176,53 +1188,36 @@ void MainWindow::on_resolve_nn_data_clicked()
         }
 }
 
+void MainWindow::on_add_nn_data_clicked(int label)
+{
+    if(!w.get() || result_features.empty())
+        return;
+    if(train_scene.ml.nn.get_input_dim()[0] == 0)
+        return;
+    QModelIndexList sel = ui->recog_result->selectionModel()->selectedRows();
+    nn_data.input = train_scene.ml.nn.get_input_dim();
+    nn_data.output = train_scene.ml.nn.get_output_dim();
+    for(int i = 0;i < sel.size();++i)
+    {
+        std::vector<float> data;
+        int row = sel[i].row();
+        w->get_picture(data,result_features[row][0],result_features[row][1],train_scene.ml.nn.get_input_dim()[0]);
+        nn_data.data.push_back(std::move(data));
+        nn_data.data_label.push_back(label);
+    }
+    ui->data_pos->setMaximum(nn_data.size()-1);
+}
 
 void MainWindow::on_add_negative_nn_data_clicked()
 {
-    if(!w.get() || result_features.empty() ||
-            ui->recog_result->currentRow() >= result_features.size())
-        return;
-    int row = ui->recog_result->currentRow();
-    std::vector<float> data;
-    w->get_picture(data,result_features[row][0],result_features[row][1],32);
-    nn_data.data.push_back(std::move(data));
-    nn_data.data_label.push_back(0);
-    ui->data_pos->setMaximum(nn_data.size()-1);
-    ui->data_pos->setValue(nn_data.size()-1);
-    ui->recog_result->setFocus();
+    on_add_nn_data_clicked(0);
 }
 
 void MainWindow::on_add_positive_nn_data_clicked()
 {
-    if(!w.get() || result_features.empty() ||
-            ui->recog_result->currentRow() >= result_features.size())
-        return;
-    int row = ui->recog_result->currentRow();
-    std::vector<float> data;
-    w->get_picture(data,result_features[row][0],result_features[row][1],32);
-    nn_data.data.push_back(std::move(data));
-    nn_data.data_label.push_back(1);
-    ui->data_pos->setMaximum(nn_data.size()-1);
-    ui->data_pos->setValue(nn_data.size()-1);
-    ui->recog_result->setFocus();
+    on_add_nn_data_clicked(1);
 }
 
-void MainWindow::on_add_nn_data_clicked()
-{
-    if(!w.get() || result_features.empty())
-        return;
-    nn_data.input = image::geometry<3>(32,32,3);
-    nn_data.output = image::geometry<3>(1,1,2);
-    for(int row = 0;row < result_features.size();++row)
-    {
-        std::vector<float> data;
-        w->get_picture(data,result_features[row][0],result_features[row][1],32);
-        nn_data.data.push_back(std::move(data));
-        nn_data.data_label.push_back(0);
-    }
-    ui->data_pos->setMaximum(nn_data.size()-1);
-    QMessageBox::information(this,"WS Recognier","Image added",0);
-}
 
 void MainWindow::on_actionBatch_quality_check_triggered()
 {
@@ -1256,5 +1251,36 @@ void MainWindow::on_actionBatch_quality_check_triggered()
         output += "\r\n";
     }
     show_info_dialog("Results",output);
+}
+
+
+void MainWindow::on_actionFlip_X_triggered()
+{
+    for(int i = 0;i < nn_data.size();++i)
+        image::flip_x(image::make_image(&nn_data.data[i][0],
+                      image::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+    on_data_pos_valueChanged(0);
+}
+
+void MainWindow::on_actionFlip_Y_triggered()
+{
+    for(int i = 0;i < nn_data.size();++i)
+        image::flip_y(image::make_image(&nn_data.data[i][0],
+                      image::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+    on_data_pos_valueChanged(0);
+}
+
+void MainWindow::on_actionSwap_XY_triggered()
+{
+    for(int i = 0;i < nn_data.size();++i)
+        image::swap_xy(image::make_image(&nn_data.data[i][0],
+                      image::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+    on_data_pos_valueChanged(0);
+}
+
+void MainWindow::on_actionAdd_network_noise_triggered()
+{
+    if(!train_scene.ml.nn.empty())
+        train_scene.ml.nn.reinit_weights();
 }
 

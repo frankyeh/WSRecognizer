@@ -1,10 +1,15 @@
 #ifndef GZIP_INTERFACE_HPP
 #define GZIP_INTERFACE_HPP
-#include "gzlib/zlib.h"
+#ifdef WIN32
+#include "QtZlib/zlib.h"
+#else
+#include "zlib.h"
+#endif
 #include "image/image.hpp"
 #include "prog_interface_static_link.h"
-
+extern bool prog_aborted_;
 class gz_istream{
+    size_t size_;
     std::ifstream in;
     gzFile handle;
     bool is_gz(const char* file_name)
@@ -18,38 +23,69 @@ class gz_istream{
         return false;
     }
 public:
-    gz_istream(void):handle(0){}
+    gz_istream(void):size_(0),handle(0){}
     ~gz_istream(void)
     {
         close();
     }
 
-    template<typename char_type>
+    template<class char_type>
     bool open(const char_type* file_name)
     {
+        prog_aborted_ = false;
+        in.open(file_name,std::ios::binary);
+        unsigned int gz_size = 0;
+        if(in)
+        {
+            in.seekg(-4,std::ios::end);
+            size_ = (size_t)in.tellg()+4;
+            in.read((char*)&gz_size,4);
+            in.seekg(0,std::ios::beg);
+        }
         if(is_gz(file_name))
         {
+            in.close();
+            size_ = gz_size;
             handle = gzopen(file_name, "rb");
             return handle;
         }
-        in.open(file_name,std::ios::binary);
         return in.good();
     }
-    void read(void* buf,size_t size)
+    bool read(void* buf,size_t buf_size)
     {
-        char title[] = "reading......";
-        title[7+(std::clock()/CLOCKS_PER_SEC)%5] = 0;
-        ::set_title(title);
+        check_prog((unsigned int)cur(),(unsigned int)size());
+        if(prog_aborted())
+            return false;
         if(handle)
         {
-            if (gzread(handle,buf,size) == -1)
+
+            const size_t block_size = 524288000;// 500mb
+            while(buf_size > block_size)
+            {
+                if(gzread(handle,buf,block_size) <= 0)
+                {
+                    close();
+                    return false;
+                }
+                buf_size -= block_size;
+                buf = (char*)buf + block_size;
+            }
+            if (gzread(handle,buf,(unsigned int)buf_size) <= 0)
+            {
                 close();
+                return false;
+            }
+            return true;
         }
         else
             if(in)
-                in.read((char*)buf,size);
+            {
+                in.read((char*)buf,buf_size);
+                return in.good();
+            }
+        return false;
     }
-    void seek(size_t pos)
+    void seek(long pos)
     {
         if(handle)
         {
@@ -69,10 +105,19 @@ public:
         }
         if(in)
             in.close();
+        check_prog(0,0);
+    }
+    size_t cur(void)
+    {
+        return handle ? (size_t)gztell(handle):(size_t)in.tellg();
+    }
+    size_t size(void)
+    {
+        return size_;
     }
 
     operator bool() const	{return handle ? true:in.good();}
-    bool operator!() const	{return !(handle ? true:in.good());}
+    bool operator!() const	{return !(handle? true:in.good());}
 };
 
 class gz_ostream{
@@ -95,7 +140,7 @@ public:
         close();
     }
 public:
-    template<typename char_type>
+    template<class char_type>
     bool open(const char_type* file_name)
     {
         if(is_gz(file_name))
@@ -108,12 +153,20 @@ public:
     }
     void write(const void* buf,size_t size)
     {
-        char title[] = "writing......";
-        title[7+(std::clock()/CLOCKS_PER_SEC)%5] = 0;
-        ::set_title(title);
         if(handle)
         {
-            if(gzwrite(handle,buf,size) == -1)
+            const size_t block_size = 524288000;// 500mb
+            while(size > block_size)
+            {
+                if(gzwrite(handle,buf,block_size) <= 0)
+                {
+                    close();
+                    throw std::runtime_error("Cannot output gz file");
+                }
+                size -= block_size;
+                buf = (const char*)buf + block_size;
+            }
+            if(gzwrite(handle,buf,(unsigned int)size) <= 0)
                 close();
         }
         else

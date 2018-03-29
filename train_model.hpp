@@ -138,7 +138,8 @@ public:
     void recognize(const image::color_image& I,image::grayscale_image& result,bool* terminated = 0);
 public:
     void cca(const image::color_image& I,const image::grayscale_image& result,float pixel_size,
-             unsigned int border,int x,int y,std::vector<std::vector<float> >& features);
+             unsigned int border,int x,int y,std::vector<std::vector<float> >& features,bool* terminated,
+             bool apply_ml,const image::matrix<3,3,float>& color_unmix);
     bool load_from_file(const char* file_name);
 
     void save_to_file(const char* file_name);

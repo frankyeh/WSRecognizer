@@ -60,6 +60,7 @@ void QMapGraphicsScene::update(void)
     setItemIndexMethod(QGraphicsScene::NoIndex);
     addRect(0, 0, qimage.width(),qimage.height(),QPen(),qimage);
 }
+
 void QMapGraphicsScene::mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 {
     if(mouseEvent->button() == Qt::RightButton)

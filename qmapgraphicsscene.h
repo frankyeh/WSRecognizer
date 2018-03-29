@@ -19,7 +19,6 @@ public:
 protected:
     bool right_button;
     std::vector<image::vector<2,short> >sel_point;
-    //void mouseDoubleClickEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mousePressEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent );
     void mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent );

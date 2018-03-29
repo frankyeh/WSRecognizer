@@ -136,21 +136,14 @@ void wsi::set_stain_scale(float stain1_scale,float stain2_scale)
         return;
     }
     stain_scale = true;
-    image::matrix<3,3,float> m,s,m2;
-    for(int i = 0,pos = 0;i < 3;++i,pos += 3)
-    {
-        m[pos] = color0_v[i];
-        m[pos+1] = color1_v[i];
-        m[pos+2] = color2_v[i];
-    }
+    image::matrix<3,3,float> s;
     s.identity();
     s[4] = stain1_scale;
     s[8] = stain2_scale;
-    m2 = m;
-    m2.inv();
-    m *= s;
-    m *= m2;
-    stain_scale_transform = m;
+
+    stain_scale_transform = color_m;
+    stain_scale_transform *= s;
+    stain_scale_transform *= color_m_inv;
     stain_scale = true;
 }
 
@@ -215,11 +208,15 @@ void wsi::read_profile(const image::color_image& I)
         //    std::cout << i->first << ":" << i->second << " ";
         //std::cout << std::endl;
     }while(local_max_count > 2);
+    if(stain_map.empty())
+        return;
     auto result =stain_map.begin();
     color1_count = result->first;
+    color1_code = result->second;
     double angle1 = result->second*3.14159265358979323846/180;
     ++result;
     color2_count = result->first;
+    color2_code = result->second;
     double angle2 = result->second*3.14159265358979323846/180;
     image::vector<3> v1,v2;
     color1_v = b*std::cos(angle1) + nb*std::sin(angle1);
@@ -228,6 +225,15 @@ void wsi::read_profile(const image::color_image& I)
     v2 = color2_v*48.0+g*200.0;
     color1 = image::rgb_color(v1[2],v1[1],v1[0]);
     color2 = image::rgb_color(v2[2],v2[1],v2[0]);
+
+    for(int i = 0,pos = 0;i < 3;++i,pos += 3)
+    {
+        color_m[pos] = color0_v[i];
+        color_m[pos+1] = color1_v[i];
+        color_m[pos+2] = color2_v[i];
+    }
+    color_m_inv = color_m;
+    color_m_inv.inv();
     //std::cout << color1_v << std::endl;
     //std::cout << color2_v << std::endl;
     //std::cout << v1 << std::endl;
@@ -433,9 +439,9 @@ bool wsi::read(openslide_t*& cur_handle,image::color_image& main_image,unsigned 
     {
         for(int i = 0;i < main_image.size();++i)
         {
-            image::vector<3> c(main_image[i].data),new_c;
-            image::mat::vector_product(stain_scale_transform.begin(),c.begin(),new_c.begin(),image::dim<3,3>());
-            main_image[i] = new_c.begin();
+            image::vector<3> c(main_image[i].data);
+            c.rotate(stain_scale_transform);
+            main_image[i] = c.begin();
         }
     }
     return true;
@@ -508,8 +514,10 @@ void wsi::run(unsigned int block_size,
             if(*terminated)
                 return;
             std::vector<std::vector<float> > new_features;
-            ml.cca(I,result,pixel_size,extra_size,x,y,new_features);
+            ml.cca(I,result,pixel_size,extra_size,x,y,new_features,terminated,true,color_m_inv);
 
+            if(*terminated)
+                return;
             // check whether inside mask
             for(int j = 0;j < new_features.size();++j)
             {
@@ -641,14 +649,25 @@ void wsi::get_picture(image::color_image& I,int x,int y,unsigned int dim)
     I.resize(image::geometry<2>(dim,dim));
     read(I,x-dim/2,y-dim/2,0);
 }
+
+void unmix_color(const image::color_image& I,std::vector<float>& data,const image::matrix<3,3,float>& color_um)
+{
+    data.resize(I.size()+I.size()+I.size());
+    for(int j = 0;j < I.size();++j)
+    {
+        image::vector<3> rgb(I[j][0],I[j][1],I[j][2]);
+        rgb.rotate(color_um);
+        data[j] = std::max<float>(0.0f,std::min<float>(1.0f,rgb[0]/570.19f))-0.5;
+        data[j+I.size()] = std::max<float>(0.0f,std::min<float>(1.0f,rgb[1]*3.0f/285.1f))-0.5;
+        data[j+I.size()+I.size()] = std::max<float>(0.0f,std::min<float>(1.0f,rgb[2]*3.0f/285.1f))-0.5;
+    }
+}
+
 void wsi::get_picture(std::vector<float>& data,int x,int y,unsigned int dim)
 {
     image::color_image I;
     get_picture(I,x,y,dim);
-    data.resize(dim*dim*3);
-    for(int i = 0,index = 0;i < 3;++i)
-        for(int j = 0;j < I.size();++j,++index)
-            data[index] = ((float)I[j][2-i]/255.0f-0.5f)*2.0f;
+    unmix_color(I,data,color_m_inv);
 }
 
 void wsi::get_distribution_image(image::basic_image<float,2>& feature_mapping,

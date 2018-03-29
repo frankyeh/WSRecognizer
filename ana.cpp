@@ -33,9 +33,9 @@ int ana(void)
     std::string cmd = po.get("command");
     if(cmd == "get_stain_info")
     {
-        std::cout << "stain 1=(" << (int)w.color1.r << "," << (int)w.color1.g << "," << (int)w.color1.b << ")" << std::endl;
+        std::cout << "stain 1 code" << w.color1_code << std::endl;
         std::cout << "stain 1 count=" << (int)w.color1_count << std::endl;
-        std::cout << "stain 2=(" << (int)w.color2.r << "," << (int)w.color2.g << "," << (int)w.color2.b << ")" << std::endl;
+        std::cout << "stain 2 code" << w.color2_code << std::endl;
         std::cout << "stain 2 count=" << (int)w.color2_count << std::endl;
         std::cout << "stain ratio=" << (float)w.color1_count/(float)w.color2_count << std::endl;
         return 1;

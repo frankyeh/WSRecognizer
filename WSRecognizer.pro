@@ -21,21 +21,6 @@ SOURCES += main.cpp\
     qtrainscene.cpp \
     qmainscene.cpp \
     rec.cpp \
-    gzlib/zutil.c \
-    gzlib/uncompr.c \
-    gzlib/trees.c \
-    gzlib/inftrees.c \
-    gzlib/inflate.c \
-    gzlib/inffast.c \
-    gzlib/infback.c \
-    gzlib/gzwrite.c \
-    gzlib/gzread.c \
-    gzlib/gzlib.c \
-    gzlib/gzclose.c \
-    gzlib/deflate.c \
-    gzlib/crc32.c \
-    gzlib/compress.c \
-    gzlib/adler32.c \
     libs/prog_interface.cpp \
     gen.cpp \
     rec_dialog.cpp \
@@ -55,7 +40,8 @@ HEADERS  += mainwindow.h \
     rec_dialog.hpp \
     gen_dialog.hpp \
     plot/qcustomplot.h \
-    program_option.hpp
+    program_option.hpp \
+    ../include/image/ml/cnn.hpp
 RESOURCES += \
     icons.qrc
 FORMS    += mainwindow.ui \

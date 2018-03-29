@@ -19,13 +19,17 @@ void train_model::recognize(const image::color_image& I,image::grayscale_image& 
     if(param[0] != 0.0)
         image::morphology::recursive_smoothing(result,param[0]);
 }
+void unmix_color(const image::color_image& I,std::vector<float>& data,const image::matrix<3,3,float>& color_um);
 void train_model::cca(const image::color_image& I,
                       const image::grayscale_image& result,
                       float pixel_size,
                       unsigned int border,
                       int x,
                       int y,
-                      std::vector<std::vector<float> >& features)
+                      std::vector<std::vector<float> >& features,
+                      bool* terminated,
+                      bool apply_ml,
+                      const image::matrix<3,3,float>& color_unmix)
 {
 
     image::basic_image<unsigned int,2> labels;
@@ -43,6 +47,8 @@ void train_model::cca(const image::color_image& I,
     for(size_t index = 0;index < regions.size();++index)
     if(!regions[index].empty())
     {
+        if(terminated && *terminated)
+            return;
         if(center_of_mass[index][0] < border || center_of_mass[index][0] >= upper_border ||
            center_of_mass[index][1] < border || center_of_mass[index][1] >= upper_border)
             continue;
@@ -82,7 +88,7 @@ void train_model::cca(const image::color_image& I,
             sum_out /= count_out;
         float intensity = (sum_out - sum_in)/255.0;
         std::vector<float> f;
-        // feature list 0:x 1:y 2:span 3:area 4:shape 5:intensity gradient
+        // feature list 0:x 1:y 2:span 3:area 4:shape 5:intensity gradient 6: cnn
         f.push_back(center_of_mass[index][0]+x);
         f.push_back(center_of_mass[index][1]+y);
         f.push_back(span*pixel_size);
@@ -104,14 +110,11 @@ void train_model::cca(const image::color_image& I,
             else
             {
                 image::crop(I,I2,from,to);
-                std::vector<float> data(dim*dim*3);
-                for(int i = 0,index = 0;i < 3;++i)
-                    for(int j = 0;j < I2.size();++j,++index)
-                        data[index] = ((float)I2[j][2-i]/255.0f-0.5f)*2.0f;
-
+                std::vector<float> data;
+                unmix_color(I2,data,color_unmix);
                 nn.predict(data);
                 float score = data[1]-data[0];
-                if(score < 0.0)
+                if(apply_ml && score < 0.0)
                     continue;
                 f.push_back(score);
             }

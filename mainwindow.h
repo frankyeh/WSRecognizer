@@ -52,13 +52,15 @@ private:
     QAction *recentFileActs[MaxRecentFiles];
     void updateRecentList(QStringList files);
     void openFile(QString);
-    void addRecoResult(const std::vector<std::vector<float> >& result);
+    void on_add_nn_data_clicked(int label);
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     void resizeEvent(QResizeEvent* event);
     void wheelEvent ( QWheelEvent * event );
     void keyPressEvent ( QKeyEvent * event );
+    void addRecoResult(const std::vector<std::vector<float> >& result);
+
 public slots:
     void on_nn_timer();
     void show_nn(const std::vector<float>& data,unsigned char label);
@@ -145,8 +147,6 @@ private slots:
 
     void on_save_nn_data_clicked();
 
-    void on_add_nn_data_clicked();
-
     void on_train_nn_clicked();
 
     void on_reset_nn_clicked();
@@ -172,6 +172,14 @@ private slots:
 
     void on_sort_result_by_currentIndexChanged(int index);
 
+
+    void on_actionFlip_X_triggered();
+
+    void on_actionFlip_Y_triggered();
+
+    void on_actionSwap_XY_triggered();
+
+    void on_actionAdd_network_noise_triggered();
 
 public:
     Ui::MainWindow *ui;

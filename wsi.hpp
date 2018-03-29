@@ -108,8 +108,10 @@ public:
 
 public: // color profile
     image::vector<3> color0_v,color1_v,color2_v;
+    image::matrix<3,3,float> color_m,color_m_inv; // [v0 v1 v2]
     image::rgb_color color1,color2;
     double color1_count,color2_count;
+    int color1_code,color2_code;
     void read_profile(const image::color_image& I);
 public:
     bool stain_scale = false;
