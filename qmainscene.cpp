@@ -31,14 +31,14 @@ void QMainScene::move_to(int x_,int y_)
             iw /= 2;
             ih /= 2;
         }
-        main_image.resize(image::geometry<2>(iw,ih));
+        main_image.resize(tipl::geometry<2>(iw,ih));
         w->read(main_image,x,y,0);
         for(int i = 0;i > level;--i)
-            image::upsampling(main_image);
+            tipl::upsampling(main_image);
     }
     else
     {
-        main_image.resize(image::geometry<2>(iw,ih));
+        main_image.resize(tipl::geometry<2>(iw,ih));
         w->read(main_image,x,y,level);
     }
     result.clear();
@@ -76,11 +76,11 @@ void QMainScene::update_image(void)
         annotated_image = main_image;
         if(!result.empty())
         {
-            image::grayscale_image result_edge;
-            image::morphology::edge(result,result_edge);
+            tipl::grayscale_image result_edge;
+            tipl::morphology::edge(result,result_edge);
             for(unsigned int index = 0;index < result.size();++index)
                 if(result_edge[index] && !result[index])
-                    annotated_image[index] = image::rgb_color(255,0,0);
+                    annotated_image[index] = tipl::rgb(255,0,0);
         }
         output_image = QImage((unsigned char*)&*annotated_image.begin(),annotated_image.width(),annotated_image.height(),QImage::Format_RGB32);
 
@@ -91,14 +91,14 @@ void QMainScene::update_image(void)
         int x_to = x+width()*r;
         int y_to = y+height()*r;
         int pen_size = 25.0f/r;
-        for(unsigned int index = 0;index < main_window->result_features.size();++index)
-        if(main_window->result_features[index][0] > x &&
-           main_window->result_features[index][0] < x_to &&
-           main_window->result_features[index][1] > y &&
-           main_window->result_features[index][1] < y_to) // size not 0
+        for(unsigned int index = 0;index < main_window->output.size();++index)
+        if(main_window->output[index][0] > x &&
+           main_window->output[index][0] < x_to &&
+           main_window->output[index][1] > y &&
+           main_window->output[index][1] < y_to) // size not 0
         {
-            int px = (main_window->result_features[index][0]-x)/r;
-            int py = (main_window->result_features[index][1]-y)/r;
+            int px = (main_window->output[index][0]-x)/r;
+            int py = (main_window->output[index][1]-y)/r;
             if(pen_size > 5)
                 paint.drawEllipse(px-pen_size,py-pen_size,pen_size+pen_size,pen_size+pen_size);
             else
@@ -195,7 +195,7 @@ void QMainScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEvent )
 
     if(main_window->ui->train_classifier->isChecked())
     {
-        train_scene->ml.add_data(main_image[image::pixel_index<2>(x,y,main_image.geometry()).index()],
+        train_scene->ml.add_data(main_image[tipl::pixel_index<2>(x,y,main_image.geometry()).index()],
                                             (mouseEvent->button() == Qt::LeftButton ? 0:1));
         train_scene->update();
     }

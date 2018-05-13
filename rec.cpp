@@ -3,7 +3,7 @@
 #include <iostream>
 #include <iterator>
 #include <string>
-#include "image/image.hpp"
+#include "tipl/tipl.hpp"
 #include "wsi.hpp"
 #include "train_model.hpp"
 #include "libs/gzip_interface.hpp"
@@ -61,9 +61,9 @@ int rec(int ac, char *av[])
             return -1;
         }
         QImage colorI = I.convertToFormat(QImage::Format_ARGB32);
-        image::color_image data(image::geometry<2>(colorI.width(),colorI.height()));
-        std::copy((const image::rgb_color*)colorI.bits(),
-                  (const image::rgb_color*)colorI.bits()+data.size(),data.begin());
+        tipl::color_image data(tipl::geometry<2>(colorI.width(),colorI.height()));
+        std::copy((const tipl::rgb*)colorI.bits(),
+                  (const tipl::rgb*)colorI.bits()+data.size(),data.begin());
         w.ml.add_data(data,true);
         std::cout << "background image loaded." << std::endl;
     }
@@ -77,9 +77,9 @@ int rec(int ac, char *av[])
             return -1;
         }
         QImage colorI = I.convertToFormat(QImage::Format_ARGB32);
-        image::color_image data(image::geometry<2>(colorI.width(),colorI.height()));
-        std::copy((const image::rgb_color*)colorI.bits(),
-                  (const image::rgb_color*)colorI.bits()+data.size(),data.begin());
+        tipl::color_image data(tipl::geometry<2>(colorI.width(),colorI.height()));
+        std::copy((const tipl::rgb*)colorI.bits(),
+                  (const tipl::rgb*)colorI.bits()+data.size(),data.begin());
         w.ml.add_data(data,false);
         std::cout << "foreground image loaded." << std::endl;
     }
@@ -87,7 +87,7 @@ int rec(int ac, char *av[])
     std::cout << "recognization using " << vm["thread_count"].as<int>() <<" thread(s)..." << std::endl;
 
     bool terminated = false;
-    w.run(4000,200,vm["thread_count"].as<int>(),&terminated);
+    w.run(&terminated);
     std::cout << "recognition completed." << std::endl;
     if(w.result_pos.empty())
     {

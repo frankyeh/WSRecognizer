@@ -10,28 +10,28 @@ void QMapGraphicsScene::update(void)
     map_image = w->map_image;
     //if(show_mask)
     {
-        image::grayscale_image edge(w->map_mask);
-        image::morphology::edge(edge);
+        tipl::grayscale_image edge(w->map_mask);
+        tipl::morphology::edge(edge);
         for(unsigned int index = 0;index < edge.size();++index)
             if(edge[index])
-                map_image[index] = image::rgb_color(255,0,0);
+                map_image[index] = tipl::rgb(255,0,0);
     }
     //if(main_window->ui->show_reco_on_map->isChecked())
     {
         double rx = double(map_image.width()-1)/w->dim[0];
         double ry = double(map_image.height()-1)/w->dim[1];
         int shift[9] = {-map_image.width()*2,-map_image.width(),-2,-1,0,1,2,map_image.width(),map_image.width()*2};
-        for(int i = 0;i < main_window->result_features.size();++i)
+        for(int i = 0;i < main_window->output.size();++i)
         {
             bool red = (i == main_window->ui->recog_result->currentRow());
-            int x = main_window->result_features[i][0]*rx;
-            int y = main_window->result_features[i][1]*ry;
+            int x = main_window->output[i][0]*rx;
+            int y = main_window->output[i][1]*ry;
             int pos = y*map_image.width()+x;
             for(int j = 0;j < 9;++j)
             {
                 int p = pos + shift[j];
                 if(p >=0 && p < map_image.size())
-                    map_image[p] = red ? image::rgb_color(255,0,0) : image::rgb_color(0,0,255);
+                    map_image[p] = red ? tipl::rgb(255,0,0) : tipl::rgb(0,0,255);
             }
         }
     }
@@ -40,9 +40,7 @@ void QMapGraphicsScene::update(void)
     QImage I((unsigned char*)&*map_image.begin(),map_image.width(),map_image.height(),QImage::Format_RGB32);
 
 
-
-    double scale = w->pixel_size/(float)resolution;
-    qimage = I.scaled(w->dim[0]*scale,w->dim[1]*scale);
+    qimage = I.scaledToWidth(map_image.width()*10.0f/(float)resolution);
     {
         QPainter paint(&qimage);
         double x = qimage.width()*main_scene.x/w->dim[0];
@@ -77,7 +75,7 @@ void QMapGraphicsScene::mouseMoveEvent ( QGraphicsSceneMouseEvent * mouseEvent )
     float X = mouseEvent->scenePos().x();
     QImage bitmap(qimage);
     QPainter paint(&bitmap);
-    sel_point.push_back(image::vector<2,short>(X, Y));
+    sel_point.push_back(tipl::vector<2,short>(X, Y));
     for (unsigned int index = 1; index < sel_point.size(); ++index)
         paint.drawLine(sel_point[index-1][0], sel_point[index-1][1],sel_point[index][0], sel_point[index][1]);
     clear();
@@ -104,7 +102,7 @@ void QMapGraphicsScene::mouseReleaseEvent ( QGraphicsSceneMouseEvent * mouseEven
             paint.drawPolygon(&*qpoints.begin(),qpoints.size() - 1);
         }
         QImage draw_map = bitmap.scaled(w->map_mask.width(),w->map_mask.height());
-        for (image::pixel_index<2>index(w->map_mask.geometry());index < w->map_mask.size();++index)
+        for (tipl::pixel_index<2>index(w->map_mask.geometry());index < w->map_mask.size();++index)
             if(QColor(draw_map.pixel(index.x(),index.y())).red() > 64)
             {
                 if(right_button)

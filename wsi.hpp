@@ -1,6 +1,6 @@
 #ifndef WSI_HPP
 #define WSI_HPP
-#include "image/image.hpp"
+#include "tipl/tipl.hpp"
 #include <string>
 #include "train_model.hpp"
 typedef struct _openslide openslide_t;
@@ -12,42 +12,44 @@ class wsi
 public:
     openslide_t* handle;
     std::string file_name;
-    image::geometry<2> dim;
+    tipl::geometry<2> dim;
     float pixel_size; // in micron;
     unsigned int level;
+public:
+    tipl::color_image rawI;
 public:
     bool intensity_normalization = false;
     float intensity_norm_value = 0;
 public:
     bool is_tma;
-    image::basic_image<int,2> tma_map;
-    image::basic_image<int,2> tma_array;
+    tipl::image<int,2> tma_map;
+    tipl::image<int,2> tma_array;
 public:
     std::vector<std::vector<float> > tma_results;
 
 public:
-    image::color_image map_image;
-    image::grayscale_image intensity_map;
-    image::grayscale_image map_mask;
+    tipl::color_image map_image;
+    tipl::grayscale_image intensity_map;
+    tipl::grayscale_image map_mask;
 public:
     std::vector<std::string> property_name;
     std::vector<std::string> property_value;
 public:
     std::vector<std::string> associated_image_name;
-    std::vector<image::basic_image<image::rgb_color,2> > associated_image;
+    std::vector<tipl::image<tipl::rgb,2> > associated_image;
 public:
     wsi();
     ~wsi();
     bool open(const char* file_name);
     void process_mask(void);
 public:
-    bool read(openslide_t*& cur_handle,image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level);
-    bool read(image::color_image& main_image,unsigned int x,unsigned int y,unsigned int level)
+    bool read(openslide_t*& cur_handle,tipl::color_image& main_image,int x,int y,unsigned int level);
+    bool read(tipl::color_image& main_image,int x,int y,unsigned int level)
     {
         return read(handle,main_image,x,y,level);
     }
 private:
-    std::vector<image::geometry<2> > dim_at_level;
+    std::vector<tipl::geometry<2> > dim_at_level;
     std::vector<double> r_at_level;
 public:
     double get_r(int level) const
@@ -90,34 +92,33 @@ public:
     std::mutex add_data_mutex;
     bool is_adding_mutex;
     train_model ml;
-    std::vector<std::vector<float> > result_features;
+    std::vector<std::vector<float> > output;
     unsigned int progress;
     bool finished;
     void push_result(std::vector<std::vector<float> >& features);
-    void run(unsigned int block_size,unsigned int extra_size,
-             unsigned int thread_count,bool* terminated);
+    void run(bool* terminated,unsigned int thread_count = std::thread::hardware_concurrency());
     void save_recognition_result(const char* file_name);
     void save_tma_result(const char* file_name,bool label_on_right);
     bool load_recognition_result(const char* file_name);
     bool load_text_reco_result(const char* file_name);
-    void get_distribution_image(image::basic_image<float,2>& feature_mapping,
-                                image::basic_image<unsigned char,2>& contour,
+    void get_distribution_image(tipl::image<float,2>& feature_mapping,
+                                tipl::image<unsigned char,2>& contour,
                                 float resolution_mm,float band_width_mm,bool feature);
-    void get_picture(image::color_image& I,int x,int y,unsigned int dim);
-    void get_picture(std::vector<float>& I,int x,int y,unsigned int dim);
+    bool get_picture(tipl::color_image& I,int x,int y,unsigned int dim);
+    bool get_picture(std::vector<float>& I,int x,int y,unsigned int dim);
 
 public: // color profile
-    image::vector<3> color0_v,color1_v,color2_v;
-    image::matrix<3,3,float> color_m,color_m_inv; // [v0 v1 v2]
-    image::rgb_color color1,color2;
-    double color1_count,color2_count;
+    tipl::vector<3> color1_v,color2_v;
+    tipl::matrix<3,3,float> color_m,color_m_inv; // [v0 v1 v2]
+    tipl::rgb color1,color2;
     int color1_code,color2_code;
-    void read_profile(const image::color_image& I);
+    void read_profile(const tipl::color_image& I);
 public:
     bool stain_scale = false;
-    image::matrix<3,3,float> stain_scale_transform;
+    tipl::matrix<3,3,float> stain_scale_transform;
     void set_stain_scale(float stain1_scale,float stain2_scale);
 public: // report
+    std::string report;
     float mean_value;
     float max_value;
     float q1_value,q3_value;

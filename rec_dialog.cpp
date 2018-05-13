@@ -85,15 +85,15 @@ void rec_dialog::run_thread(void)
             add_log("spatial resolution:" + QString::number(w.pixel_size) + " micron");
         }
 
-        w.run(4000,200,ui->thread->value(),&terminated);
+        w.run(&terminated,ui->thread->value());
         add_log("recognition completed.");
-        if(w.result_features.empty())
+        if(w.output.empty())
         {
             add_log("No target recognized. Process aborted. Please check the training data?");
             continue;
         }
 
-        add_log(QString("A total of ") + QString::number(w.result_features.size()) + " targets identified");
+        add_log(QString("A total of ") + QString::number(w.output.size()) + " targets identified");
 
         std::string output_name = file_list[file_progress].toLocal8Bit().begin();
         output_name += ".";

@@ -37,7 +37,7 @@ unsigned char color_spectrum_value(unsigned char center, unsigned char value)
         return 0;
     return 255-(dif << 2);
 }
-image::color_image bar,colormap;
+tipl::color_image bar,colormap;
 
 int main(int ac, char *av[])
 {
@@ -65,11 +65,11 @@ int main(int ac, char *av[])
 
 
     {
-        colormap.resize(image::geometry<2>(256,1));
-        bar.resize(image::geometry<2>(20,256));
+        colormap.resize(tipl::geometry<2>(256,1));
+        bar.resize(tipl::geometry<2>(20,256));
         for(unsigned int index = 0;index < 256;++index)
         {
-            image::rgb_color color;
+            tipl::rgb color;
             color.r = color_spectrum_value(64,index);
             color.g = color_spectrum_value(128,index);
             color.b = color_spectrum_value(128+64,index);
@@ -97,8 +97,15 @@ int main(int ac, char *av[])
                 return 1;
             }
             QDir::setCurrent(QFileInfo(po.get("source").c_str()).absolutePath());
+            try{
             if(po.get("action") == std::string("ana"))
                 ana();
+            }
+            catch(...)
+            {
+                std::cout << "Error occured. Program terminated" << std::endl;
+                return 1;
+            }
         }
         return 1;
     }

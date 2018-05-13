@@ -3,11 +3,11 @@
 #include <iostream>
 #include <iterator>
 #include <string>
-#include "image/image.hpp"
+#include "tipl/tipl.hpp"
 #include "wsi.hpp"
 #include "train_model.hpp"
 #include "libs/gzip_interface.hpp"
-extern image::color_image bar,colormap;
+extern tipl::color_image bar,colormap;
 
 int gen(int ac, char *av[])
 {
@@ -59,12 +59,12 @@ int gen(int ac, char *av[])
     std::cout << "max:" << max_value << std::endl;
 
 
-    image::basic_image<float,2> sdi_value;
-    image::basic_image<unsigned char,2> sdi_contour;
+    tipl::image<float,2> sdi_value;
+    tipl::image<unsigned char,2> sdi_contour;
     w.get_distribution_image(sdi_value,sdi_contour,resolution,resolution,type,min_size,max_size);
 
     std::cout << "image_dimension:" << sdi_value.width() << " by " << sdi_value.height() << std::endl;
-    image::color_image sdi_image(sdi_value.geometry());
+    tipl::color_image sdi_image(sdi_value.geometry());
     if(max_value > min_value)
     {
         float r = 255.99/(max_value-min_value);
@@ -84,7 +84,7 @@ int gen(int ac, char *av[])
             << "." << image_type;
         std::string output_filename = out.str();
         std::cout << "output data to " << output_filename << std::endl;
-        image::io::mat_write mat(output_filename.c_str());
+        tipl::io::mat_write mat(output_filename.c_str());
         if(!mat)
         {
             std::cout << "Cannot write to file " << output_filename << std::endl;

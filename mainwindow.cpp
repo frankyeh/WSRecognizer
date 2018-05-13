@@ -15,7 +15,7 @@
 #include "libs/gzip_interface.hpp"
 
 extern std::auto_ptr<QProgressDialog> progressDialog;
-extern image::color_image bar,colormap;
+extern tipl::color_image bar,colormap;
 void show_info_dialog(const std::string& title,const std::string& result)
 {
     QMessageBox msgBox;
@@ -144,11 +144,22 @@ void MainWindow::openFile(QString filename)
     if(!wsi::can_open(filename.toLocal8Bit().begin()) ||
        !new_w->open(filename.toLocal8Bit().begin()))
     {
-        QMessageBox::information(this,"error","Cannot open file",0);
-        return;
+        main_scene.result.clear();
+
+        QImage I;
+        if(!I.load(filename))
+        {
+            QMessageBox::information(this,"Error","Cannot open image file",0);
+            return;
+        }
+        QImage I2 = I.convertToFormat(QImage::Format_RGB32);
+        new_w->rawI.resize(tipl::geometry<2>(I2.width(),I2.height()));
+        std::copy((const unsigned int*)I2.bits(),(const unsigned int*)I2.bits() + new_w->rawI.size(),
+                  new_w->rawI.begin());
+        new_w->open(0);
     }
     ui->recog_result->setRowCount(0);
-    result_features.clear();
+    output.clear();
 
     ui->NavigationWidget->show();
     ui->result_widget->setTabEnabled(0,true);
@@ -160,10 +171,15 @@ void MainWindow::openFile(QString filename)
     map_scene.w = w.get();
     map_scene.update();
 
-    if(!w->associated_image.empty())
     {
-        QImage qimage((unsigned char*)&*w->associated_image[0].begin(),w->associated_image[0].width(),w->associated_image[0].height(),QImage::Format_RGB32);
-        qimage= qimage.scaledToWidth(150);
+        QImage qimage;
+        if(!w->associated_image.empty())
+        {
+            qimage = QImage((unsigned char*)&*w->associated_image[0].begin(),
+                w->associated_image[0].width(),w->associated_image[0].height(),QImage::Format_RGB32).scaledToWidth(150);
+        }
+        else
+            qimage = QImage(150,150,QImage::Format_RGB32);
         info_scene.setSceneRect(0, 0, qimage.width()+60,std::max<int>(qimage.height(),160));
         info_scene.clear();
         info_scene.setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -171,17 +187,12 @@ void MainWindow::openFile(QString filename)
         QImage S1(35,35,QImage::Format_RGB32),S2(35,35,QImage::Format_RGB32);
         S1.fill(QColor(w->color1.color));
         S2.fill(QColor(w->color2.color));
-        info_scene.addText(QString("Ratio %1:1").arg((int)(w->color1_count/w->color2_count)))->moveBy(qimage.width()+7,0);
-        info_scene.addText(QString("Stain: %1").arg(w->color1_code))->moveBy(qimage.width()+7,20);
-        info_scene.addRect(qimage.width()+10,40,35,35,QPen(),S1);
-        info_scene.addText(QString("Stain: %1").arg(w->color2_code))->moveBy(qimage.width()+7,75);
-        info_scene.addRect(qimage.width()+10,95,35,35,QPen(),S2);
-
-
+        info_scene.addText(QString("Stain: %1").arg(w->color1_code))->moveBy(qimage.width()+7,0);
+        info_scene.addRect(qimage.width()+10,20,35,35,QPen(),S1);
+        info_scene.addText(QString("Stain: %1").arg(w->color2_code))->moveBy(qimage.width()+7,55);
+        info_scene.addRect(qimage.width()+10,75,35,35,QPen(),S2);
         ui->slice_tab_widget->setMaximumHeight(std::max<int>(qimage.height(),140)+100);
     }
-    else
-        ui->slice_tab_widget->hide();
 
     ui->result_widget->setTabEnabled(2,w->is_tma);
     ui->info_widget->clear();
@@ -231,7 +242,7 @@ void MainWindow::on_action_Open_triggered()
 {
     QString filename = QFileDialog::getOpenFileName(
                            this,
-                           "Open WSI",work_path,"WSI files (*.svs *.tif *.vms *.vmu *.scn *.mrxs *.ndpi);;All files (*)");
+                           "Open WSI",work_path,"WSI files (*.svs *.tif *.bmp *.jpg *.vms *.vmu *.scn *.mrxs *.ndpi);;All files (*)");
     if (filename.isEmpty())
         return;
 
@@ -266,8 +277,7 @@ void MainWindow::on_recognize_stains_clicked()
         train_scene.ml.recognize(main_scene.main_image,main_scene.result);
 
         train_scene.ml.cca(main_scene.main_image,main_scene.result,w.get() ? w->pixel_size : 1,
-                           std::max<int>(16,train_scene.ml.nn.get_input_dim()[0]),
-                           main_scene.x,main_scene.y,new_features,false,false,w->color_m_inv);
+                           0,main_scene.x,main_scene.y,new_features,0,true,w->color_m_inv);
         ui->test_result->setText(QString("%1 targets recognized").arg(new_features.size()));
         ui->show_recog->setChecked(true);
         main_scene.update_image();
@@ -281,26 +291,26 @@ void MainWindow::on_recognize_stains_clicked()
 
 void MainWindow::on_sort_result_by_currentIndexChanged(int index)
 {
-    if(result_features.empty())
+    if(output.empty())
         return;
     int sort_index = ui->sort_result_by->currentIndex();
     if(sort_index == -1)
         return;
     if(ui->sort_incremental->isChecked())
-        std::sort(result_features.begin(), result_features.end(),
+        std::sort(output.begin(), output.end(),
         [&](const std::vector<float>& a,const std::vector<float>& b)
             {
                 return a[sort_index] < b[sort_index];
             });
     else
-        std::sort(result_features.begin(), result_features.end(),
+        std::sort(output.begin(), output.end(),
         [&](const std::vector<float>& a,const std::vector<float>& b)
             {
                 return a[sort_index] > b[sort_index];
             });
     ui->recog_result->setRowCount(0);
     std::vector<std::vector<float> > sorted_result;
-    sorted_result.swap(result_features);
+    sorted_result.swap(output);
     addRecoResult(sorted_result);
 }
 void MainWindow::addRecoResult(const std::vector<std::vector<float> >& result)
@@ -311,7 +321,7 @@ void MainWindow::addRecoResult(const std::vector<std::vector<float> >& result)
 
     for(unsigned int index = 0;index < result.size();++index)
     {
-        result_features.push_back(result[index]);
+        output.push_back(result[index]);
         if(ui->recog_result->rowCount() > 65535)
             continue;
         ui->recog_result->setRowCount(ui->recog_result->rowCount()+1);
@@ -347,7 +357,7 @@ void MainWindow::on_run_clicked()
     thread.clear();
     thread.run([this]()
     {
-        w->run(4000,200,std::thread::hardware_concurrency(),&terminated);
+        w->run(&terminated);
     });
     timer.reset(new QTimer(this));
     connect(timer.get(), SIGNAL(timeout()), this, SLOT(show_run_progress()));
@@ -358,12 +368,12 @@ void MainWindow::on_run_clicked()
 
 void MainWindow::show_run_progress(void)
 {
-    if(added_results < w->result_features.size())
+    if(added_results < w->output.size())
     {
-        int count = w->result_features.size();
+        int count = w->output.size();
         std::vector<std::vector<float> > new_result;
         for(int i = added_results;i < count;++i)
-            new_result.push_back(w->result_features[i]);
+            new_result.push_back(w->output[i]);
         added_results = count;
         addRecoResult(new_result);
     }
@@ -560,25 +570,7 @@ void MainWindow::on_actionOpen_image_triggered()
                            "Open Image",work_path,"Image files (*.tif *.bmp *.jpg);;All files (*)");
     if (filename.isEmpty())
         return;
-    main_scene.result.clear();
 
-    QImage I;
-    if(!I.load(filename))
-    {
-        QMessageBox::information(this,"Error","Cannot open image file",0);
-        return;
-    }
-    ui->NavigationWidget->hide();
-    ui->result_widget->setTabEnabled(0,false);
-    ui->result_widget->setTabEnabled(1,false);
-    ui->result_widget->setTabEnabled(2,false);
-
-
-    QImage I2 = I.convertToFormat(QImage::Format_RGB32);
-    main_scene.level = 0;
-    main_scene.main_image.resize(image::geometry<2>(I2.width(),I2.height()));
-    std::copy((const unsigned int*)I2.bits(),(const unsigned int*)I2.bits() + main_scene.main_image.size(),main_scene.main_image.begin());
-    main_scene.update_image();
 }
 
 void MainWindow::on_pushButton_clicked()
@@ -604,8 +596,8 @@ void MainWindow::on_recog_result_currentItemChanged(QTableWidgetItem *current, Q
     if(!w.get() || ui->recog_result->currentRow() == -1)
         return;
     int row = ui->recog_result->currentRow();
-    int x = result_features[row][0]-main_scene.width()*w->get_r(main_scene.level)/2;
-    int y = result_features[row][1]-main_scene.height()*w->get_r(main_scene.level)/2;
+    int x = output[row][0]-main_scene.width()*w->get_r(main_scene.level)/2;
+    int y = output[row][1]-main_scene.height()*w->get_r(main_scene.level)/2;
     main_scene.move_to(x,y);
     map_scene.update();
 }
@@ -630,7 +622,7 @@ void MainWindow::on_open_reco_clicked()
         }
         std::shared_ptr<QXmlStreamReader> xmlReader(new QXmlStreamReader(xmlFile.get()));
 
-        std::vector<std::vector<float> > result_features;
+        std::vector<std::vector<float> > output;
         while(!xmlReader->atEnd() && !xmlReader->hasError())
         {
             QXmlStreamReader::TokenType token = xmlReader->readNext();
@@ -644,21 +636,21 @@ void MainWindow::on_open_reco_clicked()
                         std::vector<float> f(7);
                         f[0] = xmlReader->attributes().value("X").toFloat();
                         f[1] = xmlReader->attributes().value("Y").toFloat();
-                        result_features.push_back(f);
+                        output.push_back(f);
                     }
                 }
         }
         xmlReader->clear();
         xmlFile->close();
-        w->result_features.swap(result_features);
+        w->output.swap(output);
     }
     else
         w->load_text_reco_result(filename.toLocal8Bit().begin());
-    if(w->result_features.size() > 0)
+    if(w->output.size() > 0)
     {
         ui->recog_result->setRowCount(0);
-        result_features.clear();
-        addRecoResult(w->result_features);
+        output.clear();
+        addRecoResult(w->output);
         update_sdi();
         update_color_bar();
     }
@@ -675,10 +667,11 @@ void MainWindow::on_save_reco_clicked()
 
     if(QFileInfo(filename).suffix() == "jpg")
     {
-        for(int row = 0;row < result_features.size();++row)
+        for(int row = 0;row < output.size();++row)
         {
-            image::color_image I;
-            w->get_picture(I,result_features[row][0],result_features[row][1],200);
+            tipl::color_image I;
+            if(!w->get_picture(I,output[row][0],output[row][1],200))
+                continue;
             QImage qimage((unsigned char*)&*I.begin(),I.width(),I.height(),QImage::Format_RGB32);
             qimage.save(QFileInfo(filename).absolutePath() + "/" +
                         QFileInfo(filename).baseName() + "_" +
@@ -687,17 +680,17 @@ void MainWindow::on_save_reco_clicked()
         return;
     }
     std::ofstream out(filename.toLocal8Bit().begin());
-    for(int row = 0;row < result_features.size();++row)
+    for(int row = 0;row < output.size();++row)
     {
-        for(int col = 0;col < result_features[row].size();++col)
-            out << result_features[row][col] << " ";
+        for(int col = 0;col < output[row].size();++col)
+            out << output[row][col] << " ";
         out << std::endl;
     }
 }
 
 void MainWindow::on_save_density_image_clicked()
 {
-    if(!w.get() || w->result_features.empty())
+    if(!w.get() || w->output.empty())
         return;
     QString filename = QFileDialog::getSaveFileName(
                            this,"Save results",work_path + "//"+ QFileInfo(file_name).baseName() + reg_name + ".jpg","jpg image (*.jpg);;All files (*)");
@@ -717,9 +710,9 @@ void MainWindow::on_del_row_clicked()
     for(int i = 0;i < rows.size();++i)
     {
         int row = rows[i];
-        if(row >= 0 && row < result_features.size())
+        if(row >= 0 && row < output.size())
         {
-            result_features.erase(result_features.begin()+row);
+            output.erase(output.begin()+row);
             ui->recog_result->removeRow(row);
         }
     }
@@ -729,7 +722,7 @@ void MainWindow::on_del_row_clicked()
 void MainWindow::on_del_all_clicked()
 {
     ui->recog_result->setRowCount(0);
-    result_features.clear();
+    output.clear();
     map_scene.update();
 }
 
@@ -802,15 +795,16 @@ void MainWindow::on_nn_filter_results_clicked()
 {
     if(!w.get() || train_scene.ml.nn.empty())
         return;
-    for(int row = 0;row < result_features.size();++row)
+    for(int row = 0;row < output.size();++row)
     {
-        int x = result_features[row][0];
-        int y = result_features[row][1];
+        int x = output[row][0];
+        int y = output[row][1];
         std::vector<float> data;
-        w->get_picture(data,x,y,train_scene.ml.nn.get_input_dim()[0]);
+        if(!w->get_picture(data,x,y,train_scene.ml.nn.get_input_dim()[0]))
+            continue;
         if(!train_scene.ml.nn.predict_label(data))
         {
-            result_features.erase(result_features.begin()+row);
+            output.erase(output.begin()+row);
             ui->recog_result->removeRow(row);
             --row;
         }
@@ -871,25 +865,25 @@ void MainWindow::on_actionSave_Stain_Classifier_triggered()
 
 void MainWindow::on_actionSmoothing_triggered()
 {
-    image::morphology::smoothing(w->map_mask);
+    tipl::morphology::smoothing(w->map_mask);
     map_scene.update();
 }
 
 void MainWindow::on_actionEnlarge_triggered()
 {
-    image::morphology::dilation(w->map_mask);
+    tipl::morphology::dilation(w->map_mask);
     map_scene.update();
 }
 
 void MainWindow::on_actionDefragment_triggered()
 {
-    image::morphology::defragment(w->map_mask);
+    tipl::morphology::defragment(w->map_mask);
     map_scene.update();
 }
 
 void MainWindow::on_actionShrink_triggered()
 {
-    image::morphology::erosion(w->map_mask);
+    tipl::morphology::erosion(w->map_mask);
     map_scene.update();
 }
 
@@ -909,14 +903,14 @@ void MainWindow::on_clear_all_clicked()
 void MainWindow::on_actionThreshold_triggered()
 {
     bool ok;
-    image::grayscale_image gray_image(w->map_image);
+    tipl::grayscale_image gray_image(w->map_image);
     int threshold = QInputDialog::getInt(this,"DSI Studio","Please assign the threshold",
-                                         (int)image::segmentation::otsu_threshold(gray_image),
+                                         (int)tipl::segmentation::otsu_threshold(gray_image),
                                          0,255,1,&ok);
     if (!ok)
         return;
     w->map_mask = gray_image;
-    image::binary(w->map_mask,std::bind2nd (std::less<unsigned char>(), threshold));
+    tipl::binary(w->map_mask,std::bind2nd (std::less<unsigned char>(), threshold));
         map_scene.update();
 }
 
@@ -1021,25 +1015,25 @@ void MainWindow::on_train_nn_clicked()
     train_scene.ml.nn.batch_size = ui->batch_size->value();
     train_scene.ml.nn.epoch = ui->epoch->value();
     train_scene.ml.nn.repeat = ui->repeat_training->value();
+    train_scene.ml.nn.resample_label = true;
 
     end_training = false;
     test_error = 100;
     training_error = 100;
     nn_thread.run([&]()
     {
-        image::ml::network_data<float,unsigned char> aug_data(nn_data);
+        tipl::ml::network_data<float,unsigned char> aug_data(nn_data);
         auto on_enumerate_epoch = [&](){
-            static int i = 0;
-            ++i;
-            if(i & 1)
-                for(int j = 0;j < aug_data.size();++j)
-                    image::flip_x(image::make_image(&aug_data.data[j][0],aug_data.input));
-            if(i & 2)
-                for(int j = 0;j < aug_data.size();++j)
-                    image::flip_y(image::make_image(&aug_data.data[j][0],aug_data.input));
-            if(i & 4)
-                for(int j = 0;j < aug_data.size();++j)
-                    image::swap_xy(image::make_image(&aug_data.data[j][0],aug_data.input));
+            tipl::uniform_dist<int> gen(2);
+            for(int j = 0;j < aug_data.size();++j)
+            {
+                if(gen())
+                    tipl::flip_x(tipl::make_image(&aug_data.data[j][0],aug_data.input));
+                if(gen())
+                    tipl::flip_y(tipl::make_image(&aug_data.data[j][0],aug_data.input));
+                if(gen())
+                    tipl::swap_xy(tipl::make_image(&aug_data.data[j][0],aug_data.input));
+            }
             //test_error = train_scene.ml.nn.test_error(aug_data.data,aug_data.data_label);
             training_error = train_scene.ml.nn.get_training_error();
             std::cout << "training error:" << training_error << "  test error:" << test_error << std::endl;
@@ -1056,7 +1050,7 @@ void MainWindow::on_train_nn_clicked()
 
 void MainWindow::show_nn(const std::vector<float>& data,unsigned char label)
 {
-    image::color_image I2;
+    tipl::color_image I2;
     train_scene.ml.nn.to_image(I2,data,label,20,std::max<int>(250,ui->nn_view->width()-20));
     QImage qimage((unsigned char*)&*I2.begin(),I2.width(),I2.height(),QImage::Format_RGB32);
     nn_image = qimage.copy();
@@ -1113,10 +1107,10 @@ void MainWindow::on_data_pos_valueChanged(int value)
     if(nn_data.empty())
         return;
     auto& data = nn_data.data[ui->data_pos->value()];
-    image::grayscale_image I(image::geometry<2>(nn_data.input[0],nn_data.input[1]*nn_data.input[2]));
+    tipl::grayscale_image I(tipl::geometry<2>(nn_data.input[0],nn_data.input[1]*nn_data.input[2]));
     for(int i = 0;i < data.size();++i)
-        I[i] = std::floor((data[i]+1.0f)*127.0f);
-    image::color_image cI = I;
+        I[i] = std::floor((data[i]+1.0f)*127.5f);
+    tipl::color_image cI = I;
     QImage qimage((unsigned char*)&*cI.begin(),cI.width(),cI.height(),QImage::Format_RGB32);
 
 
@@ -1129,37 +1123,11 @@ void MainWindow::on_data_pos_valueChanged(int value)
 
     if(nn_data.input[2] == 3) // RGB
     {
-        image::color_image I2(image::geometry<2>(nn_data.input[0],nn_data.input[1]));
+        tipl::color_image I2(tipl::geometry<2>(nn_data.input[0],nn_data.input[1]));
         int shift1 = I2.size();
         int shift2 = shift1 + shift1;
-        if(w.get())
-        {
-            for(int i = 0;i < I2.size();++i)
-            {
-                image::vector<3> v(data[i],data[i+shift1],data[i+shift2]);
-                v += 0.5;
-                v[0] *= 570.19f;
-                v[1] *= 285.1f/3.0f;
-                v[2] *= 285.1f/3.0f;
-                v.rotate(w->color_m);
-                if(v[0] > 255.0)
-                    v[0] = 255.0f;
-                if(v[1] > 255.0)
-                    v[1] = 255.0f;
-                if(v[2] > 255.0)
-                    v[2] = 255.0f;
-                if(v[0] < 0.0f)
-                    v[0] = 0.0f;
-                if(v[1] < 0.0f)
-                    v[1] = 0.0f;
-                if(v[2] < 0.0f)
-                    v[2] = 0.0f;
-                I2[i] = image::rgb_color(v[2],v[1],v[0]);
-            }
-        }
-        else
         for(int i = 0;i < I2.size();++i)
-            I2[i] = image::rgb_color(I[i],I[i+shift1],I[i+shift2]);
+            I2[i] = tipl::rgb(I[i+shift2],I[i+shift1],I[i]);
         QImage qimage2((unsigned char*)&*I2.begin(),I2.width(),I2.height(),QImage::Format_RGB32);
         data_image2 = qimage2.scaledToWidth(data_image.width());
         data_scene.addRect(data_image.width(), 0, data_image2.width(),data_image2.height(),QPen(),data_image2);
@@ -1190,7 +1158,7 @@ void MainWindow::on_resolve_nn_data_clicked()
 
 void MainWindow::on_add_nn_data_clicked(int label)
 {
-    if(!w.get() || result_features.empty())
+    if(!w.get() || output.empty())
         return;
     if(train_scene.ml.nn.get_input_dim()[0] == 0)
         return;
@@ -1201,7 +1169,8 @@ void MainWindow::on_add_nn_data_clicked(int label)
     {
         std::vector<float> data;
         int row = sel[i].row();
-        w->get_picture(data,result_features[row][0],result_features[row][1],train_scene.ml.nn.get_input_dim()[0]);
+        if(!w->get_picture(data,output[row][0],output[row][1],train_scene.ml.nn.get_input_dim()[0]))
+            continue;
         nn_data.data.push_back(std::move(data));
         nn_data.data_label.push_back(label);
     }
@@ -1228,7 +1197,7 @@ void MainWindow::on_actionBatch_quality_check_triggered()
         return;
 
     std::vector<std::string> result;
-    result.push_back("\tstain ratio");
+    result.push_back("\tstain1\tstain2");
     for(int i = 0;i < filenames.size();++i)
         result.push_back(QFileInfo(filenames[i]).baseName().toStdString());
     begin_prog("reading");
@@ -1238,11 +1207,18 @@ void MainWindow::on_actionBatch_quality_check_triggered()
         wsi w;
         if(!w.open(filenames[i].toStdString().c_str()))
         {
-            result[i+1] += "Cannot open";
-            continue;
+            QImage I;
+            if(!I.load(filenames[i]))
+                continue;
+            QImage I2 = I.convertToFormat(QImage::Format_RGB32);
+            w.rawI.resize(tipl::geometry<2>(I2.width(),I2.height()));
+            std::copy((const unsigned int*)I2.bits(),(const unsigned int*)I2.bits() + w.rawI.size(),
+                      w.rawI.begin());
+            w.open(0);
         }
-        result[i+1] += QString::number(w.color1_count/w.color2_count).toStdString();
-
+        result[i+1] += QString::number(w.color1_code).toStdString();
+        result[i+1] += "\t";
+        result[i+1] += QString::number(w.color2_code).toStdString();
     }
     std::string output;
     for(int i = 0;i < result.size();++i)
@@ -1257,24 +1233,24 @@ void MainWindow::on_actionBatch_quality_check_triggered()
 void MainWindow::on_actionFlip_X_triggered()
 {
     for(int i = 0;i < nn_data.size();++i)
-        image::flip_x(image::make_image(&nn_data.data[i][0],
-                      image::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+        tipl::flip_x(tipl::make_image(&nn_data.data[i][0],
+                      tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
     on_data_pos_valueChanged(0);
 }
 
 void MainWindow::on_actionFlip_Y_triggered()
 {
     for(int i = 0;i < nn_data.size();++i)
-        image::flip_y(image::make_image(&nn_data.data[i][0],
-                      image::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+        tipl::flip_y(tipl::make_image(&nn_data.data[i][0],
+                      tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
     on_data_pos_valueChanged(0);
 }
 
 void MainWindow::on_actionSwap_XY_triggered()
 {
     for(int i = 0;i < nn_data.size();++i)
-        image::swap_xy(image::make_image(&nn_data.data[i][0],
-                      image::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+        tipl::swap_xy(tipl::make_image(&nn_data.data[i][0],
+                      tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
     on_data_pos_valueChanged(0);
 }
 

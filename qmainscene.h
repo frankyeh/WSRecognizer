@@ -2,7 +2,7 @@
 #define QMAINSCENE_H
 
 #include <QtWidgets/QGraphicsScene>
-#include "image/image.hpp"
+#include "tipl/tipl.hpp"
 
 class MainWindow;
 class QTrainScene;
@@ -15,7 +15,7 @@ public:
     int level;
     int x,y;
     float pixel_size;
-    image::color_image main_image, annotated_image;
+    tipl::color_image main_image, annotated_image;
     bool show_recog;
     QTrainScene* train_scene;
     MainWindow* main_window;
@@ -25,7 +25,7 @@ public:
     }
 public:
     bool show_edge;
-    image::grayscale_image result;
+    tipl::grayscale_image result;
 
     void reload(void)
     {

@@ -6,7 +6,7 @@
 #include "wsi.hpp"
 #include "ui_gen_dialog.h"
 
-extern image::color_image colormap;
+extern tipl::color_image colormap;
 gen_dialog::gen_dialog(QWidget *parent,QString workpath_) :
     QDialog(parent),
     ui(new Ui::gen_dialog),
@@ -67,13 +67,13 @@ void gen_dialog::on_buttonBox_accepted()
             QMessageBox::information(this,"Error",file_list[index] + " is an invalid file",0);
             continue;
         }
-        image::basic_image<float,2> sdi_value;
-        image::basic_image<unsigned char,2> sdi_contour;
+        tipl::image<float,2> sdi_value;
+        tipl::image<unsigned char,2> sdi_contour;
         w.get_distribution_image(sdi_value,sdi_contour,
                                  ui->resolution->value(),ui->resolution->value(),
                                  ui->type->currentIndex());
 
-        image::color_image sdi_image(sdi_value.geometry());
+        tipl::color_image sdi_image(sdi_value.geometry());
 
         {
             float r = 255.99/(ui->value_max->value()-ui->value_min->value());
@@ -93,7 +93,7 @@ void gen_dialog::on_buttonBox_accepted()
         if(ui->format->currentIndex() == 1)// mat
         {
             QString output_file = file_list[index] + ".mat";
-            image::io::mat_write mat(output_file.toLocal8Bit().begin());
+            tipl::io::mat_write mat(output_file.toLocal8Bit().begin());
             mat << sdi_value;
         }
         if(ui->format->currentIndex() == 0)// tif

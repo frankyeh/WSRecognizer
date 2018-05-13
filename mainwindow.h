@@ -22,26 +22,26 @@ public:
     QTrainScene train_scene;
     QMainScene main_scene;
     QGraphicsScene info_scene,result_scene,data_scene,nn_scene;
-    image::color_image main_image;
+    tipl::color_image main_image;
 public:
-    std::vector<std::vector<float> > result_features;
+    std::vector<std::vector<float> > output;
 public:
     bool end_training = false;
     float test_error,training_error;
-    image::thread nn_thread;
-    image::ml::network_data<float,unsigned char> nn_data;
+    tipl::thread nn_thread;
+    tipl::ml::network_data<float,unsigned char> nn_data;
     QImage data_image,data_image2,nn_image;
     std::auto_ptr<QTimer> nn_timer;
 private:
-    image::thread thread;
+    tipl::thread thread;
     std::auto_ptr<QTimer> timer;
     bool terminated;
     unsigned int added_results;
     QStringList reco_result_list;
 private:
-    image::basic_image<float,2> sdi_value;
-    image::basic_image<unsigned char,2> sdi_contour;
-    image::color_image sdi_image;
+    tipl::image<float,2> sdi_value;
+    tipl::image<unsigned char,2> sdi_contour;
+    tipl::color_image sdi_image;
     QGraphicsScene color_bar;
 private slots:
     void show_run_progress(void);

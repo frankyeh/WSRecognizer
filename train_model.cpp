@@ -6,7 +6,7 @@ train_model::train_model(void):r(9),param(10)
     r[0] = r[4] = r[8] = 1.0;
 }
 
-void train_model::recognize(const image::color_image& I,image::grayscale_image& result,bool* terminated)
+void train_model::recognize(const tipl::color_image& I,tipl::grayscale_image& result,bool* terminated)
 {
     init();
     result.resize(I.geometry());
@@ -17,11 +17,11 @@ void train_model::recognize(const image::color_image& I,image::grayscale_image& 
             return;
     }
     if(param[0] != 0.0)
-        image::morphology::recursive_smoothing(result,param[0]);
+        tipl::morphology::recursive_smoothing(result,param[0]);
 }
-void unmix_color(const image::color_image& I,std::vector<float>& data,const image::matrix<3,3,float>& color_um);
-void train_model::cca(const image::color_image& I,
-                      const image::grayscale_image& result,
+void unmix_color(const tipl::color_image& I,std::vector<float>& data);
+void train_model::cca(const tipl::color_image& I,
+                      const tipl::grayscale_image& result,
                       float pixel_size,
                       unsigned int border,
                       int x,
@@ -29,18 +29,18 @@ void train_model::cca(const image::color_image& I,
                       std::vector<std::vector<float> >& features,
                       bool* terminated,
                       bool apply_ml,
-                      const image::matrix<3,3,float>& color_unmix)
+                      const tipl::matrix<3,3,float>& color_unmix)
 {
 
-    image::basic_image<unsigned int,2> labels;
+    tipl::image<unsigned int,2> labels;
     std::vector<std::vector<unsigned int> > regions;
-    image::morphology::connected_component_labeling(result,labels,regions);
-    unsigned int upper_border = result.width()-border;
+    tipl::morphology::connected_component_labeling(result,labels,regions);
+    int upper_border = result.width()-border;
 
-    std::vector<image::vector<2,float> > center_of_mass;
+    std::vector<tipl::vector<2,float> > center_of_mass;
     std::vector<int> size_x,size_y;
-    image::morphology::get_region_bounding_size(labels,regions,size_x,size_y);
-    image::morphology::get_region_center(labels,regions,center_of_mass);
+    tipl::morphology::get_region_bounding_size(labels,regions,size_x,size_y);
+    tipl::morphology::get_region_center(labels,regions,center_of_mass);
 
     int fov_range = std::min<int>(20,std::max<int>(4,param[2]));
 
@@ -53,12 +53,12 @@ void train_model::cca(const image::color_image& I,
            center_of_mass[index][1] < border || center_of_mass[index][1] >= upper_border)
             continue;
         float span = std::max(size_x[index],size_y[index]);
-        if(border && span > border)
-            continue;
+        //if(border && span > border)
+        //    continue;
 
 
-        std::vector<image::pixel_index<2> > neighbors;
-        image::get_neighbors(image::pixel_index<2>(center_of_mass[index][0],center_of_mass[index][1],
+        std::vector<tipl::pixel_index<2> > neighbors;
+        tipl::get_neighbors(tipl::pixel_index<2>(center_of_mass[index][0],center_of_mass[index][1],
                 result.geometry()),result.geometry(),fov_range,neighbors);
 
 
@@ -97,21 +97,22 @@ void train_model::cca(const image::color_image& I,
         f.push_back(intensity); // 5: ig
         if(!fulfill_param(f))
             continue;
+
         if(!nn.empty())
         {
-            image::color_image I2;
+            tipl::color_image I2;
             int dim= nn.get_input_dim()[0];
             int shift = dim >> 1;
-            image::vector<2,int> from(center_of_mass[index][0]-shift,center_of_mass[index][1]-shift);
-            image::vector<2,int> to(from);
+            tipl::vector<2,int> from(center_of_mass[index][0]-shift,center_of_mass[index][1]-shift);
+            tipl::vector<2,int> to(from);
             to += dim;
             if(from[0] < 0 || from[1] < 0 || to[0] >= I.width() || to[1] >= I.height())
-                ;
+                continue;
             else
             {
-                image::crop(I,I2,from,to);
+                tipl::crop(I,I2,from,to);
                 std::vector<float> data;
-                unmix_color(I2,data,color_unmix);
+                unmix_color(I2,data);
                 nn.predict(data);
                 float score = data[1]-data[0];
                 if(apply_ml && score < 0.0)
@@ -185,7 +186,7 @@ bool train_model::load_from_file(const char* file_name)
     data.classification.resize(sample_size);
     for(int i = 0;i < sample_size;++i)
     {
-        image::rgb_color cur_color;
+        tipl::rgb cur_color;
         cur_color.color = color[i];
         data.features[i].resize(3);
         data.features[i][0] = ((float)cur_color.r)/255.0f;
@@ -213,7 +214,7 @@ void train_model::save_to_file(const char* file_name)
     std::vector<unsigned char> label(sample_size);
     for(int i = 0;i < data.features.size();++i)
     {
-        color[i] = image::rgb_color(data.features[i][0]*255.0,
+        color[i] = tipl::rgb(data.features[i][0]*255.0,
                                         data.features[i][1]*255.0,
                                         data.features[i][2]*255.0);
         label[i] = data.classification[i];
@@ -223,7 +224,7 @@ void train_model::save_to_file(const char* file_name)
     mat.write("param",&*param.begin(),1,param.size());
 }
 
-void train_model::add_data(image::rgb_color color,bool background)
+void train_model::add_data(tipl::rgb color,bool background)
 {
     float atts[3];
     atts[0] = ((float)color.r/255.0f);

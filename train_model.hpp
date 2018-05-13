@@ -1,6 +1,6 @@
 #ifndef TRAIN_MODEL_HPP
 #define TRAIN_MODEL_HPP
-#include "image/image.hpp"
+#include "tipl/tipl.hpp"
 
 //feature list
 const unsigned int feature_count = 5;
@@ -11,23 +11,23 @@ enum target {pos_x=0, pos_y = 1,span = 2, area = 3, intensity = 4} ;
 class train_model
 {
 private:
-    typedef image::ml::svm<float,unsigned char> model_type;
-    image::ml::training_data<float,unsigned char> data;
+    typedef tipl::ml::svm<float,unsigned char> model_type;
+    tipl::ml::training_data<float,unsigned char> data;
     std::shared_ptr<model_type> ml_model;
     std::vector<unsigned char> solution_space;
 public:
-    image::ml::network nn;
+    tipl::ml::network nn;
 public:// for showing the rgb distribution
-    image::color_image classifier_map;
+    tipl::color_image classifier_map;
     std::vector<float> r;
     void update_classifier_map(size_t image_size)
     {
         classifier_map.clear();
         if (data.features.size())
         {
-            classifier_map.resize(image::geometry<2>(image_size,image_size));
-            std::fill(classifier_map.begin(),classifier_map.end(),image::rgb_color(255,255,255));
-            image::vector<2,double> x_dir,y_dir,z_dir;
+            classifier_map.resize(tipl::geometry<2>(image_size,image_size));
+            std::fill(classifier_map.begin(),classifier_map.end(),tipl::rgb(255,255,255));
+            tipl::vector<2,double> x_dir,y_dir,z_dir;
             x_dir[0] = r[0];
             x_dir[1] = r[3];
             y_dir[0] = r[1];
@@ -36,7 +36,7 @@ public:// for showing the rgb distribution
             z_dir[1] = r[5];
             for (size_t index = 0;index < data.features.size();++index)
             {
-                image::vector<3,double> pos;
+                tipl::vector<3,double> pos;
                 std::copy(data.features[index].begin(),data.features[index].end(),pos.begin());
                 int x,y;
                 get_position(pos,x_dir,y_dir,z_dir,image_size,x,y);
@@ -57,14 +57,14 @@ public:// for showing the rgb distribution
         }
     }
 public:
-    static void get_position(const image::vector<3,double>& pos,
-                      const image::vector<2,double>& x_dir,
-                      const image::vector<2,double>& y_dir,
-                      const image::vector<2,double>& z_dir,
+    static void get_position(const tipl::vector<3,double>& pos,
+                      const tipl::vector<2,double>& x_dir,
+                      const tipl::vector<2,double>& y_dir,
+                      const tipl::vector<2,double>& z_dir,
                       double size,
                       int& x,int& y)
     {
-        image::vector<2,double> present_location(1,1);
+        tipl::vector<2,double> present_location(1,1);
         present_location += x_dir * (pos[0]-0.5);
         present_location += y_dir * (pos[1]-0.5);
         present_location += z_dir * (pos[2]-0.5);
@@ -101,7 +101,7 @@ public:
         }
     }
 
-    unsigned char predict(image::rgb_color value)
+    unsigned char predict(tipl::rgb value)
     {
         value.a = 0;
         unsigned char result = solution_space[value.color];
@@ -132,14 +132,14 @@ public:
         return *this;
     }
     void clear(void);
-    void add_data(image::rgb_color color,bool background);
+    void add_data(tipl::rgb color,bool background);
 
 public:
-    void recognize(const image::color_image& I,image::grayscale_image& result,bool* terminated = 0);
+    void recognize(const tipl::color_image& I,tipl::grayscale_image& result,bool* terminated = 0);
 public:
-    void cca(const image::color_image& I,const image::grayscale_image& result,float pixel_size,
+    void cca(const tipl::color_image& I,const tipl::grayscale_image& result,float pixel_size,
              unsigned int border,int x,int y,std::vector<std::vector<float> >& features,bool* terminated,
-             bool apply_ml,const image::matrix<3,3,float>& color_unmix);
+             bool apply_ml,const tipl::matrix<3,3,float>& color_unmix);
     bool load_from_file(const char* file_name);
 
     void save_to_file(const char* file_name);
