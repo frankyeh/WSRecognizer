@@ -105,7 +105,6 @@ private slots:
     void on_tma_feature_currentIndexChanged(int index);
 
 
-    void on_recog_result_currentItemChanged(QTableWidgetItem *current, QTableWidgetItem *previous);
 
     void on_open_reco_clicked();
 
@@ -180,6 +179,8 @@ private slots:
     void on_actionSwap_XY_triggered();
 
     void on_actionAdd_network_noise_triggered();
+
+    void on_recog_result_itemSelectionChanged();
 
 public:
     Ui::MainWindow *ui;

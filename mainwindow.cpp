@@ -590,18 +590,6 @@ void MainWindow::on_tma_feature_currentIndexChanged(int index)
     update_sdi();
 }
 
-
-void MainWindow::on_recog_result_currentItemChanged(QTableWidgetItem *current, QTableWidgetItem *previous)
-{
-    if(!w.get() || ui->recog_result->currentRow() == -1)
-        return;
-    int row = ui->recog_result->currentRow();
-    int x = output[row][0]-main_scene.width()*w->get_r(main_scene.level)/2;
-    int y = output[row][1]-main_scene.height()*w->get_r(main_scene.level)/2;
-    main_scene.move_to(x,y);
-    map_scene.update();
-}
-
 void MainWindow::on_open_reco_clicked()
 {
     if(!w.get())
@@ -702,21 +690,16 @@ void MainWindow::on_save_density_image_clicked()
 
 void MainWindow::on_del_row_clicked()
 {
-    QModelIndexList sel = ui->recog_result->selectionModel()->selectedRows();
-    std::vector<int> rows;
-    for(int i = 0;i < sel.size();++i)
-        rows.push_back(sel.at(i).row());
-    std::sort(rows.begin(),rows.end(),std::greater<int>());
-    for(int i = 0;i < rows.size();++i)
-    {
-        int row = rows[i];
-        if(row >= 0 && row < output.size())
-        {
-            output.erase(output.begin()+row);
-            ui->recog_result->removeRow(row);
-        }
-    }
-    ui->recog_result->clearSelection();
+    if(output.empty())
+        return;
+    int row = ui->recog_result->currentRow();
+    if(row < 0)
+        return;
+    ui->recog_result->removeRow(row);
+    output.erase(output.begin()+row);
+
+    on_recog_result_itemSelectionChanged();
+    ui->recog_result->setFocus();
 }
 
 void MainWindow::on_del_all_clicked()
@@ -724,6 +707,7 @@ void MainWindow::on_del_all_clicked()
     ui->recog_result->setRowCount(0);
     output.clear();
     map_scene.update();
+    main_scene.update_image();
 }
 
 
@@ -804,8 +788,8 @@ void MainWindow::on_nn_filter_results_clicked()
             continue;
         if(!train_scene.ml.nn.predict_label(data))
         {
-            output.erase(output.begin()+row);
             ui->recog_result->removeRow(row);
+            output.erase(output.begin()+row);
             --row;
         }
     }
@@ -1024,16 +1008,7 @@ void MainWindow::on_train_nn_clicked()
     {
         tipl::ml::network_data<float,unsigned char> aug_data(nn_data);
         auto on_enumerate_epoch = [&](){
-            tipl::uniform_dist<int> gen(2);
-            for(int j = 0;j < aug_data.size();++j)
-            {
-                if(gen())
-                    tipl::flip_x(tipl::make_image(&aug_data.data[j][0],aug_data.input));
-                if(gen())
-                    tipl::flip_y(tipl::make_image(&aug_data.data[j][0],aug_data.input));
-                if(gen())
-                    tipl::swap_xy(tipl::make_image(&aug_data.data[j][0],aug_data.input));
-            }
+            aug_data.rotate_permute();
             //test_error = train_scene.ml.nn.test_error(aug_data.data,aug_data.data_label);
             training_error = train_scene.ml.nn.get_training_error();
             std::cout << "training error:" << training_error << "  test error:" << test_error << std::endl;
@@ -1160,17 +1135,24 @@ void MainWindow::on_add_nn_data_clicked(int label)
 {
     if(!w.get() || output.empty())
         return;
-    if(train_scene.ml.nn.get_input_dim()[0] == 0)
-        return;
-    QModelIndexList sel = ui->recog_result->selectionModel()->selectedRows();
-    nn_data.input = train_scene.ml.nn.get_input_dim();
-    nn_data.output = train_scene.ml.nn.get_output_dim();
-    for(int i = 0;i < sel.size();++i)
+    if(nn_data.empty())
+    {
+        if(train_scene.ml.nn.get_input_dim()[0] != 0)
+        {
+            nn_data.input = train_scene.ml.nn.get_input_dim();
+            nn_data.output = train_scene.ml.nn.get_output_dim();
+        }
+        else
+        {
+            nn_data.input = tipl::geometry<3>(64,64,1);
+            nn_data.output = tipl::geometry<3>(2,1,1);
+        }
+    }
+    for(int row = 0;row < output.size();++row)
     {
         std::vector<float> data;
-        int row = sel[i].row();
-        if(!w->get_picture(data,output[row][0],output[row][1],train_scene.ml.nn.get_input_dim()[0]))
-            continue;
+        if(!w->get_picture(data,output[row][0],output[row][1],nn_data.input[0]))
+            return;
         nn_data.data.push_back(std::move(data));
         nn_data.data_label.push_back(label);
     }
@@ -1260,3 +1242,16 @@ void MainWindow::on_actionAdd_network_noise_triggered()
         train_scene.ml.nn.reinit_weights();
 }
 
+
+void MainWindow::on_recog_result_itemSelectionChanged()
+{
+    if(!w.get() || ui->recog_result->currentRow() == -1 || ui->recog_result->currentRow() == -1)
+        return;
+    int row = ui->recog_result->currentRow();
+    if(row >= output.size())
+        return;
+    int x = output[row][0]-main_scene.width()*w->get_r(main_scene.level)/2;
+    int y = output[row][1]-main_scene.height()*w->get_r(main_scene.level)/2;
+    main_scene.move_to(x,y);
+    map_scene.update();
+}

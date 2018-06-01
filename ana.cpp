@@ -63,25 +63,34 @@ int ana(void)
     std::vector<std::vector<float> > label_output;
     if(po.has("load_label"))
     {
-        std::string param = po.get("load_label");
-        std::replace(param.begin(),param.end(),',',' ');
-        std::string reco_file;
-        int label;
-        std::istringstream in(param);
-        in >> label >> reco_file;
-        std::cout << "Reading text label file:" << reco_file << std::endl;
-        if(w.load_text_reco_result(reco_file.c_str()))
+        std::string label_files = po.get("load_label");
+        std::replace(label_files.begin(),label_files.end(),';',' ');
+        std::istringstream in0(label_files);
+        std::string param;
+        while(in0 >> param)
         {
-            labels.resize(w.output.size());
-            std::fill(labels.begin(),labels.end(),label);
-            w.output.swap(label_output);
+            std::replace(param.begin(),param.end(),',',' ');
+            std::string reco_file;
+            int label;
+            std::istringstream in(param);
+            in >> label >> reco_file;
+            std::cout << "Reading text label file:" << reco_file << " as label=" << label << std::endl;
+            if(w.load_text_reco_result(reco_file.c_str()))
+            {
+                for(int i = 0;i < w.output.size();++i)
+                {
+                    labels.push_back(label);
+                    label_output.push_back(std::move(w.output[i]));
+                }
+                w.output.clear();
+            }
+            else
+                std::cout << "Fail to read target text file:" << reco_file << std::endl;
         }
-        else
-            std::cout << "Fail to read target text file:" << reco_file << std::endl;
     }
 
 
-    if(po.has("reco"))
+    if(po.get("reco",1) && po.has("color_model"))
     {
         bool terminated = false;
         std::cout << "Processing whole slide image. Please wait..." << std::endl;
@@ -90,57 +99,56 @@ int ana(void)
         std::cout << "A total of " << w.output.size() << " targets were identified." << std::endl;
     }
 
-    if(po.has("remove_repeat"))
     {
         int dis = po.get("remove_repeat",60);
-        std::vector<char> remove_list(w.output.size());
+        if(dis != 0)
+        {
+            std::vector<char> remove_list(w.output.size());
+            for(int i = 0;i < label_output.size();++i)
+                for(int j = 0;j < w.output.size();++j)
+                    if(std::fabs(w.output[j][0]-label_output[i][0]) < dis &&
+                       std::fabs(w.output[j][1]-label_output[i][1]) < dis)
+                        remove_list[j] = 1;
 
-        for(int i = 0;i < label_output.size();++i)
-            for(int j = 0;j < w.output.size();++j)
-                if(std::fabs(w.output[j][0]-label_output[i][0]) < dis &&
-                   std::fabs(w.output[j][1]-label_output[i][1]) < dis)
-                    remove_list[j] = 1;
-
-        for(int i = 0;i < w.output.size();++i)
-            for(int j = i+1;j < w.output.size();++j)
-                if(std::fabs(w.output[j][0]-w.output[i][0]) < dis &&
-                   std::fabs(w.output[j][1]-w.output[i][1]) < dis)
-                    remove_list[j] = 1;
-        std::vector<std::vector<float> > new_output;
-        for(int i = 0;i < w.output.size();++i)
-            if(!remove_list[i])
-                new_output.push_back(std::move(w.output[i]));
-        std::cout << "A total of " << w.output.size()-new_output.size() << " repeat targets were removed" << std::endl;
-        w.output.swap(new_output);
+            for(int i = 0;i < w.output.size();++i)
+                for(int j = i+1;j < w.output.size();++j)
+                    if(std::fabs(w.output[j][0]-w.output[i][0]) < dis &&
+                       std::fabs(w.output[j][1]-w.output[i][1]) < dis)
+                        remove_list[j] = 1;
+            std::vector<std::vector<float> > new_output;
+            for(int i = 0;i < w.output.size();++i)
+                if(!remove_list[i])
+                    new_output.push_back(std::move(w.output[i]));
+            std::cout << "A total of " << w.output.size()-new_output.size() << " repeat targets were removed" << std::endl;
+            w.output.swap(new_output);
+        }
     }
-    std::multimap<float,int,std::greater<float> > sorted_result;
-    if(po.has("sort_output"))
     {
-        int index = po.get("sort_output",0);
+        int index = po.get("sort_output",6);
         std::cout << "sorted output by parameter:" << index << std::endl;
-        for(int i = 0;i < w.output.size();++i)
-            sorted_result.insert(std::make_pair(w.output[i][index],i));
+        std::sort(w.output.begin(),w.output.end(),[index](const std::vector<float>& lhs,const std::vector<float>& rhs)
+        {
+            return lhs[index] > rhs[index];
+        }
+        );
     }
     if(po.has("save_output"))
     {
+        int count = std::min<int>(po.get("max_output",50),w.output.size());
         std::string output_filename = po.get("save_output");
-        std::ofstream out(output_filename.c_str());
-
-        int count = po.get("max_output",w.output.size());
-        std::cout << "Output " << count << " features to " << output_filename << std::endl;
-        auto result = sorted_result.begin();
-        out << "x,y,span,area,shape,ig,cnn" << std::endl;
-        for(int i = 0;i < count;++i)
+        if(count == 0)
+            std::cout << "No recognized target for output." << std::endl;
+        else
         {
-            int pos = i;
-            if(!sorted_result.empty())
+            std::cout << "Output " << count << " features to " << output_filename << std::endl;
+            std::ofstream out(output_filename.c_str());
+            out << "x,y,span,area,shape,ig,cnn" << std::endl;
+            for(int i = 0;i < count;++i)
             {
-                pos = result->second;
-                ++result;
+                for(int j = 0;j < w.output[i].size();++j)
+                    out << w.output[i][j] << ",";
+                out << std::endl;
             }
-            for(int j = 0;j < w.output[pos].size();++j)
-                out << w.output[pos][j] << ",";
-            out << std::endl;
         }
     }
 
@@ -183,12 +191,15 @@ int ana(void)
             ++output_count;
         }
         std::cout << "A total of " << output_count << " reco targets were extracted." << std::endl;
-        if(!nn_data.save_to_file<gz_ostream>(data_file.c_str()))
+        if(output_label_count || output_count)
         {
-            std::cout << "Fail to save to nn data file:" << data_file << std::endl;
-            return false;
+            if(!nn_data.save_to_file<gz_ostream>(data_file.c_str()))
+            {
+                std::cout << "Fail to save to nn data file:" << data_file << std::endl;
+                return false;
+            }
+            std::cout << "Data saved to " << data_file.c_str() << std::endl;
         }
-        std::cout << "Data saved to " << data_file.c_str() << std::endl;
         return true;
     }
     return 1;
