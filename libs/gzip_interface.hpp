@@ -45,7 +45,10 @@ public:
         if(is_gz(file_name))
         {
             in.close();
-            size_ = gz_size;
+            if(size_ > gz_size) // size > 4G
+                size_ = size_*2;
+            else
+                size_ = gz_size;
             handle = gzopen(file_name, "rb");
             return handle;
         }
@@ -53,7 +56,10 @@ public:
     }
     bool read(void* buf,size_t buf_size)
     {
-        check_prog((unsigned int)cur(),(unsigned int)size());
+        if(cur() < size())
+            check_prog(100*cur()/size(),100);
+        else
+            check_prog(99,100);
         if(prog_aborted())
             return false;
         if(handle)
@@ -115,9 +121,9 @@ public:
     {
         return size_;
     }
-
-    operator bool() const	{return handle ? true:in.good();}
-    bool operator!() const	{return !(handle? true:in.good());}
+    bool good(void) const {return handle ? !gzeof(handle):in.good();}
+    operator bool() const	{return good();}
+    bool operator!() const	{return !good();}
 };
 
 class gz_ostream{
@@ -183,8 +189,10 @@ public:
         if(out)
             out.close();
     }
-    operator bool() const	{return handle? true:out.good();}
-    bool operator!() const	{return !(handle? true:out.good());}
+    bool good(void) const {return handle ? !gzeof(handle):out.good();}
+    operator bool() const	{return good();}
+    bool operator!() const	{return !good();}
+
 };
 
 

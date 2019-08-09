@@ -14,7 +14,6 @@
 #include "libs/prog_interface_static_link.h"
 #include "libs/gzip_interface.hpp"
 
-extern std::auto_ptr<QProgressDialog> progressDialog;
 extern tipl::color_image bar,colormap;
 void show_info_dialog(const std::string& title,const std::string& result)
 {
@@ -96,8 +95,6 @@ MainWindow::MainWindow(QWidget *parent) :
     updateRecentList(recent_file_list);
     if(!recent_file_list.isEmpty())
         work_path = QFileInfo(recent_file_list[0]).absolutePath();
-
-    progressDialog.reset(new QProgressDialog);
 }
 
 MainWindow::~MainWindow()
