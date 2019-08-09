@@ -113,7 +113,7 @@ void train_model::cca(const tipl::color_image& I,
                 tipl::crop(I,I2,from,to);
                 std::vector<float> data;
                 unmix_color(I2,data);
-                nn.predict(data);
+                nn.predict(data,data);
                 float score = data[1]-data[0];
                 if(apply_ml && score < 0.0)
                     continue;

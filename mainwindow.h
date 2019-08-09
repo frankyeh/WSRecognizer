@@ -29,7 +29,7 @@ public:
     bool end_training = false;
     float test_error,training_error;
     tipl::thread nn_thread;
-    tipl::ml::network_data<float,unsigned char> nn_data;
+    tipl::ml::network_data<unsigned char> nn_data;
     QImage data_image,data_image2,nn_image;
     std::auto_ptr<QTimer> nn_timer;
 private:
@@ -177,8 +177,6 @@ private slots:
     void on_actionFlip_Y_triggered();
 
     void on_actionSwap_XY_triggered();
-
-    void on_actionAdd_network_noise_triggered();
 
     void on_recog_result_itemSelectionChanged();
 

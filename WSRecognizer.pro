@@ -41,7 +41,8 @@ HEADERS  += mainwindow.h \
     gen_dialog.hpp \
     plot/qcustomplot.h \
     program_option.hpp \
-    ../include/image/ml/cnn.hpp
+    ../include/image/ml/cnn.hpp \
+    ../include/tipl/ml/cnn.hpp
 RESOURCES += \
     icons.qrc
 FORMS    += mainwindow.ui \

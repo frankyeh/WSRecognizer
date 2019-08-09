@@ -786,7 +786,7 @@ void MainWindow::on_nn_filter_results_clicked()
         std::vector<float> data;
         if(!w->get_picture(data,x,y,train_scene.ml.nn.get_input_dim()[0]))
             continue;
-        if(!train_scene.ml.nn.predict_label(data))
+        if(!train_scene.ml.nn.predict(data))
         {
             ui->recog_result->removeRow(row);
             output.erase(output.begin()+row);
@@ -992,28 +992,26 @@ void MainWindow::on_train_nn_clicked()
         nn_timer->stop();
     }
 
-    train_scene.ml.nn.learning_rate = ui->learning_rate->value();
-    train_scene.ml.nn.w_decay_rate = ui->w_decay->value();
-    train_scene.ml.nn.b_decay_rate = ui->b_decay->value();
-    train_scene.ml.nn.momentum = ui->momentum->value();
-    train_scene.ml.nn.batch_size = ui->batch_size->value();
-    train_scene.ml.nn.epoch = ui->epoch->value();
-    train_scene.ml.nn.repeat = ui->repeat_training->value();
-    train_scene.ml.nn.resample_label = true;
+    train_scene.ml.train.learning_rate = ui->learning_rate->value();
+    train_scene.ml.train.momentum = ui->momentum->value();
+    train_scene.ml.train.batch_size = ui->batch_size->value();
+    train_scene.ml.train.epoch = ui->epoch->value();
 
     end_training = false;
     test_error = 100;
     training_error = 100;
     nn_thread.run([&]()
     {
-        tipl::ml::network_data<float,unsigned char> aug_data(nn_data);
         auto on_enumerate_epoch = [&](){
-            aug_data.rotate_permute();
+            //aug_data.rotate_permute();
             //test_error = train_scene.ml.nn.test_error(aug_data.data,aug_data.data_label);
-            training_error = train_scene.ml.nn.get_training_error();
+            training_error = train_scene.ml.train.get_training_error();
             std::cout << "training error:" << training_error << "  test error:" << test_error << std::endl;
         };
-        train_scene.ml.nn.train(aug_data,nn_thread.terminated, on_enumerate_epoch);
+        tipl::ml::network_data_proxy<unsigned char> train_data;
+        train_data = nn_data;
+        train_scene.ml.train.initialize_training(train_scene.ml.nn);
+        train_scene.ml.train.train(train_scene.ml.nn,train_data,nn_thread.terminated, on_enumerate_epoch);
         end_training = true;
     });
 
@@ -1026,7 +1024,7 @@ void MainWindow::on_train_nn_clicked()
 void MainWindow::show_nn(const std::vector<float>& data,unsigned char label)
 {
     tipl::color_image I2;
-    train_scene.ml.nn.to_image(I2,data,label,20,std::max<int>(250,ui->nn_view->width()-20));
+    //train_scene.ml.nn.to_image(I2,data,label,20,std::max<int>(250,ui->nn_view->width()-20));
     QImage qimage((unsigned char*)&*I2.begin(),I2.width(),I2.height(),QImage::Format_RGB32);
     nn_image = qimage.copy();
     nn_scene.setSceneRect(0, 0, nn_image.width(),nn_image.height());
@@ -1115,7 +1113,7 @@ void MainWindow::on_data_pos_valueChanged(int value)
     info = QString("Label=%1 ").arg((int)nn_data.data_label[ui->data_pos->value()]);
 
     if(!train_scene.ml.nn.empty() && nn_data.input.size() == train_scene.ml.nn.get_input_size())
-        info += QString("NN:%1").arg(train_scene.ml.nn.predict_label(nn_data.data[ui->data_pos->value()]));
+        info += QString("NN:%1").arg(train_scene.ml.nn.predict(nn_data.data[ui->data_pos->value()]));
     QGraphicsTextItem* text2 = data_scene.addText(info);
     text2->moveBy(0,data_image.height()+20);
 
@@ -1124,7 +1122,7 @@ void MainWindow::on_data_pos_valueChanged(int value)
 void MainWindow::on_resolve_nn_data_clicked()
 {
     for(int i = 0;i < nn_data.size();++i)
-        if(train_scene.ml.nn.predict_label(nn_data.data[i]) != nn_data.data_label[i])
+        if(train_scene.ml.nn.predict(nn_data.data[i]) != nn_data.data_label[i])
         {
             ui->data_pos->setValue(i);
             return;
@@ -1215,31 +1213,34 @@ void MainWindow::on_actionBatch_quality_check_triggered()
 void MainWindow::on_actionFlip_X_triggered()
 {
     for(int i = 0;i < nn_data.size();++i)
-        tipl::flip_x(tipl::make_image(&nn_data.data[i][0],
-                      tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+    {
+        auto I = tipl::make_image(&nn_data.data[i][0],
+                tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2]));
+        tipl::flip_x(I);
+    }
     on_data_pos_valueChanged(0);
 }
 
 void MainWindow::on_actionFlip_Y_triggered()
 {
     for(int i = 0;i < nn_data.size();++i)
-        tipl::flip_y(tipl::make_image(&nn_data.data[i][0],
-                      tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+    {
+        auto I = tipl::make_image(&nn_data.data[i][0],
+                tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2]));
+        tipl::flip_y(I);
+    }
     on_data_pos_valueChanged(0);
 }
 
 void MainWindow::on_actionSwap_XY_triggered()
 {
     for(int i = 0;i < nn_data.size();++i)
-        tipl::swap_xy(tipl::make_image(&nn_data.data[i][0],
-                      tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2])));
+    {
+        auto I = tipl::make_image(&nn_data.data[i][0],
+                 tipl::geometry<3>(nn_data.input[0],nn_data.input[1],nn_data.input[2]));
+        tipl::swap_xy(I);
+    }
     on_data_pos_valueChanged(0);
-}
-
-void MainWindow::on_actionAdd_network_noise_triggered()
-{
-    if(!train_scene.ml.nn.empty())
-        train_scene.ml.nn.reinit_weights();
 }
 
 

@@ -16,6 +16,7 @@ private:
     std::shared_ptr<model_type> ml_model;
     std::vector<unsigned char> solution_space;
 public:
+    tipl::ml::trainer train;
     tipl::ml::network nn;
 public:// for showing the rgb distribution
     tipl::color_image classifier_map;

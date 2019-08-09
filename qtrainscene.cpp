@@ -30,15 +30,15 @@ void QTrainScene::update(void)
         size_t image_size = std::min(qimage.width(),qimage.height());
         train_model::get_position(tipl::vector<3,double>(0,0,0),x_dir,y_dir,z_dir,image_size,ox,oy);
 
-        train_model::get_position(tipl::vector<3,double>(1.0,0,0),x_dir,y_dir,z_dir,image_size,x,y);
+        train_model::get_position(tipl::vector<3,double>(1.0,0.0,0.0),x_dir,y_dir,z_dir,image_size,x,y);
         paint.setPen(Qt::red);
         paint.drawLine(ox,oy,x,y);
 
-        train_model::get_position(tipl::vector<3,double>(0.0,1.0,0),x_dir,y_dir,z_dir,image_size,x,y);
+        train_model::get_position(tipl::vector<3,double>(0.0,1.0,0.0),x_dir,y_dir,z_dir,image_size,x,y);
         paint.setPen(Qt::green);
         paint.drawLine(ox,oy,x,y);
 
-        train_model::get_position(tipl::vector<3,double>(0.0,0,1.0),x_dir,y_dir,z_dir,image_size,x,y);
+        train_model::get_position(tipl::vector<3,double>(0.0,0.0,1.0),x_dir,y_dir,z_dir,image_size,x,y);
         paint.setPen(Qt::blue);
         paint.drawLine(ox,oy,x,y);
     }

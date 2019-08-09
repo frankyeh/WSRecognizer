@@ -155,7 +155,7 @@ int ana(void)
     if(po.has("output_nn_data"))
     {
         std::string data_file = po.get("output_nn_data");
-        tipl::ml::network_data<float,unsigned char> nn_data;
+        tipl::ml::network_data<unsigned char> nn_data;
         std::cout << "Reading nn data file:" << data_file << std::endl;
         if(!nn_data.load_from_file<gz_istream>(data_file.c_str()))
         {
