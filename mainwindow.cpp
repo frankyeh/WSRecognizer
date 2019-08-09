@@ -399,19 +399,6 @@ void MainWindow::update_sdi(void)
     ui->tableWidget->setItem(2, 1, new QTableWidgetItem(QString::number(w->q1_value)));
     ui->tableWidget->setItem(3, 0, new QTableWidgetItem("q3"));
     ui->tableWidget->setItem(3, 1, new QTableWidgetItem(QString::number(w->q3_value)));
-    QCPStatisticalBox *newBox = 0;
-    ui->boxplot->clearPlottables();
-    ui->boxplot->xAxis->setRange(0,2);
-    ui->boxplot->xAxis->setTicks(false);
-    ui->boxplot->xAxis->setGrid(false);
-    ui->boxplot->yAxis->setRange(0,w->max_value*1.2);
-    ui->boxplot->yAxis->setLabel(ui->type->currentText());
-    ui->boxplot->yAxis->setGrid(false);
-    ui->boxplot->addPlottable(newBox = new QCPStatisticalBox(ui->boxplot->xAxis, ui->boxplot->yAxis));
-    //newBox->setName("Measurement Series 1");
-    newBox->setData(1, 0, w->q1_value, w->mean_value, w->q3_value, w->max_value);
-    ui->boxplot->replot();
-
 
     if(w->is_tma)
     {

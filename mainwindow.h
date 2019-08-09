@@ -1,8 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
 #include <QtWidgets/qmainwindow.h>
 #include <QTableWidgetItem>
+#include <QWheelEvent>
 #include <QTimer>
 #include <QSettings>
 #include "qmapgraphicsscene.h"

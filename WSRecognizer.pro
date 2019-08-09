@@ -25,7 +25,6 @@ SOURCES += main.cpp\
     gen.cpp \
     rec_dialog.cpp \
     gen_dialog.cpp \
-    plot/qcustomplot.cpp \
     ../include/tipl/ml/svm.cpp \
     ana.cpp
 
@@ -39,7 +38,6 @@ HEADERS  += mainwindow.h \
     qmainscene.h \
     rec_dialog.hpp \
     gen_dialog.hpp \
-    plot/qcustomplot.h \
     program_option.hpp \
     ../include/image/ml/cnn.hpp \
     ../include/tipl/ml/cnn.hpp
